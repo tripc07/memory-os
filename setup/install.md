@@ -2,6 +2,8 @@
 
 > Step-by-step installation of the Memory OS stack. Assumes Hermes Agent is already installed and configured.
 
+> **Windows users:** See [install_windows.md](install_windows.md) for native Windows setup without Docker or WSL.
+
 ## Prerequisites
 
 - Hermes Agent 0.14.0+ (tested on 0.15.2)

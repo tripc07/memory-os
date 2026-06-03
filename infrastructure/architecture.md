@@ -113,7 +113,25 @@ services:
 |----------|---------|-------------|
 | RAM | 8 GB | 16 GB (Qdrant + Redis + ARQ worker) |
 | Disk | 20 GB | 50 GB (Qdrant vectors + wiki files) |
-| Docker | 24.0+ | Latest stable |
-| Python | 3.11+ | 3.11 (tested) |
+| Docker | 24.0+ (Linux/macOS) | Latest stable |
+| Python | 3.11+ | 3.12 (tested) |
 | Hermes Agent | 0.14.0+ | 0.15.2 (tested) |
 | Qdrant | 1.17+ | 1.17.1 (tested) |
+
+### Windows native (no Docker)
+
+Memory OS can run natively on Windows without Docker or WSL. See [setup/install_windows.md](../setup/install_windows.md) for full instructions.
+
+| Resource | Requirement |
+|----------|-------------|
+| OS | Windows 10 21H2+ or 11 (x64) |
+| Redis | Native build via winget, Memurai, or Chocolatey |
+| Qdrant | Windows binary from [GitHub releases](https://github.com/qdrant/qdrant/releases) |
+| Build Tools | Visual Studio Build Tools 2022+ (C++ workload, for fastembed) |
+| Scheduling | Windows Task Scheduler (replaces cron) |
+
+Key differences:
+- Services run as background processes instead of containers
+- Use `127.0.0.1`/`localhost` instead of Docker DNS names (`redis`, `qdrant`)
+- Use `localhost:11434` for local Ollama instead of `host.docker.internal:11434`
+- Scheduled tasks managed via PowerShell (`setup/start_services.ps1`, `setup/stop_services.ps1`)
