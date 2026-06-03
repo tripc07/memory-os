@@ -18,9 +18,9 @@ from dataclasses import dataclass, asdict, field
 from collections import Counter
 
 # ─── Config ────────────────────────────────────────────────────────────────
-DLQ_PATH = os.path.expanduser("~/.hermes/wiki_ingest_failures.json")
-REPORT_LOG = os.path.expanduser("~/.hermes/cron/output/dlq_reports.jsonl")
-REPORT_DIR = os.path.expanduser("~/.hermes/cron/output/quality_report")
+DLQ_PATH = os.environ.get("HERMES_DLQ_PATH", os.path.expanduser("~/.hermes/wiki_ingest_failures.json"))
+REPORT_LOG = os.environ.get("HERMES_DLQ_REPORT_LOG", os.path.expanduser("~/.hermes/cron/output/dlq_reports.jsonl"))
+REPORT_DIR = os.environ.get("HERMES_DLQ_REPORT_DIR", os.path.expanduser("~/.hermes/cron/output/quality_report"))
 MAX_REPORT_HISTORY = 100  # entradas no JSONL
 
 # ─── Data Model ─────────────────────────────────────────────────────────────

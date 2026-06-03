@@ -18,13 +18,14 @@ from arq.connections import RedisSettings
 import redis.asyncio as aioredis
 
 # ─── Config ────────────────────────────────────────────────────────────────
-ENV_PATH = Path.home() / "ai-stack" / "cognitive-agent" / ".env"
+ENV_PATH = Path(os.environ.get("MAA_ENV_PATH", str(Path.home() / "ai-stack" / "cognitive-agent" / ".env")))
 if ENV_PATH.exists():
     load_dotenv(ENV_PATH)
 
 WIKI_ROOT = Path(os.environ.get("WIKI_ROOT", str(Path.home() / "Vault" / "wiki")))
-STATE_FILE = Path.home() / ".hermes" / "wiki_ingest_state.json"
-FAILURES_FILE = Path.home() / ".hermes" / "wiki_ingest_failures.json"
+HERMES_HOME = Path(os.environ.get("HERMES_HOME", str(Path.home() / ".hermes")))
+STATE_FILE = HERMES_HOME / "wiki_ingest_state.json"
+FAILURES_FILE = Path(os.environ.get("HERMES_DLQ_PATH", str(HERMES_HOME / "wiki_ingest_failures.json")))
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "")
 
 redis_settings = RedisSettings(

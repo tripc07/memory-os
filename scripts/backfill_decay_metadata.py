@@ -49,7 +49,7 @@ QDRANT_URL = "http://localhost:6333"
 COLLECTION = "knowledge_base"
 BATCH_SIZE = 200
 SCROLL_LIMIT = 200
-LOG_FILE = Path.home() / ".hermes/logs/decay_scanner.log"
+LOG_FILE = Path(os.environ.get("HERMES_LOGS_DIR", str(Path.home() / ".hermes" / "logs"))) / "decay_scanner.log"
 VAULT_ROOT = Path(os.environ.get("VAULT_PATH", str(Path.home() / "Vault")))
 
 # ─── Heuristics ──────────────────────────────────────────────────────────────
