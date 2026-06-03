@@ -56,7 +56,7 @@ They're independent: the Wiki Agent builds the curated knowledge graph; Continuo
    b. Computes SHA-256 hash for each file
    c. Compares with state file
    d. New or modified → enqueues ARQ job in Redis
-3. ARQ Worker (Docker):
+3. ARQ Worker:
    a. process_wiki_file → reads file content
    b. parse_frontmatter → extracts metadata
    c. get_embedding() → Qwen3-Embedding-8B (4096d)

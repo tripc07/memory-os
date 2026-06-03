@@ -1,6 +1,6 @@
 # Memory OS — rulebook.md additions
 
-> **Version 1** — append these sections to `~/.hermes/rulebook.md`.
+> **Version 1** — append these sections to `%USERPROFILE%\.hermes\rulebook.md`.
 
 The marker `## Memory OS Additions — v1 (do not duplicate)` at the top of
 each block is an idempotency guard. Before appending, check whether this
@@ -35,12 +35,12 @@ silently.
 
 ## Memory Operating System (Memory OS)
 
-Your memory infrastructure runs locally via Docker:
+Your memory infrastructure runs locally as native Windows services:
 - **Qdrant** (vector database, hybrid search: dense 4096d + BM25 sparse)
 - **Redis** (ARQ job queue for async embedding/indexing)
 - **ARQ Worker** (embedding pipeline, ingestion, decay scanning)
 
-These services are defined in the Memory OS docker-compose stack.
+These services run as background processes managed via PowerShell scripts.
 
 ## Memory OS Additions — v1 (do not duplicate)
 

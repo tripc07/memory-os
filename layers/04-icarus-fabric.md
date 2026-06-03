@@ -91,6 +91,6 @@ OBSIDIAN_VAULT_PATH=/absolute/path/to/vault
 
 - **`ICARUS_EXTRACTION_MAX_TOKENS` is frozen at import time** — changing `.env` requires gateway restart
 - **DeepSeek + `response_format: json_object` = `content: null`** — the fork uses prompt-based JSON + `_parse_json_robust()` instead
-- **`FABRIC_DIR` must be absolute path** — systemd does not expand `~`
+- **`FABRIC_DIR` must be absolute path** — use `C:/Users/your-user/...` format with forward slashes
 - **Obsidian is optional** — Icarus writes plain markdown, Obsidian just reads it
 - **Gateway restart required** after editing `hooks.py` or changing env vars

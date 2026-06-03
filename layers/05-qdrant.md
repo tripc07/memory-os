@@ -1,6 +1,6 @@
 # Layer 5 — Vector Database (Qdrant)
 
-> **Service:** Qdrant 1.17+ (Docker)
+> **Service:** Qdrant 1.17+ (native Windows binary)
 > **Collection:** `knowledge_base` (4096d Cosine + BM25 sparse)
 > **Embedding:** Qwen3-Embedding-8B via OpenRouter (default; configurable)
 > **Endpoint:** `http://localhost:6333`
@@ -85,7 +85,7 @@ wiki-continuous-ingest (hourly cron)
 Redis queue (ARQ job)
     │
     ▼
-ARQ Worker (Docker)
+ARQ Worker
     │ embed via configured backend (default: Qwen3-Embedding-8B)
     │ get_sparse_embedding() → BM25 (fastembed, local)
     ▼

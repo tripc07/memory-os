@@ -32,7 +32,7 @@ Not just another plugin. A complete **memory operating system** — 7 layers wor
 
 Designed and refined by someone who ran headfirst into every limitation of stock Hermes and every existing memory solution.
 
-**Requirements:** Hermes Agent + Docker (Qdrant + Redis + ARQ Worker) + Python 3.11+.  
+**Requirements:** Hermes Agent + Qdrant + Redis + ARQ Worker + Python 3.11+ (all run natively on Windows — no Docker or WSL needed).  
 Compatible with any LLM provider Hermes supports — OpenRouter, OpenAI, Anthropic, Ollama, and more.
 
 ---
@@ -160,6 +160,6 @@ If you're like me — tired of amnesiac agents — Memory OS was built for you.
 **Want to see the agent remember for real?**  
 Clone it, run it, feel the difference.
 
-→ [Setup guide](setup/install.md) · [Layer deep-dives](layers/) · [Infrastructure docs](infrastructure/architecture.md) · [Operational skills](skills/) · [License](LICENSE)
+→ [Setup guide](setup/install_windows.md) · [Layer deep-dives](layers/) · [Infrastructure docs](infrastructure/architecture.md) · [Operational skills](skills/) · [License](LICENSE)
 
 MIT License · Built with obsession by someone who runs Hermes every single day.

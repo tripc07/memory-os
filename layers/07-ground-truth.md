@@ -54,8 +54,8 @@ The hierarchy was expanded to 4 levels, with injected memory inserted as the sec
 
 | File | Change |
 |------|--------|
-| `~/.hermes/SOUL.md` | Ground Truth section expanded from 3 to 4 levels; added conflict rules |
-| `~/.hermes/rulebook.md` | Added "Injected memory" row to Source of Truth table; added mandatory verification behavior |
+| `%USERPROFILE%\.hermes\SOUL.md` | Ground Truth section expanded from 3 to 4 levels; added conflict rules |
+| `%USERPROFILE%\.hermes\rulebook.md` | Added "Injected memory" row to Source of Truth table; added mandatory verification behavior |
 
 ### Key instruction added to SOUL.md
 
@@ -83,8 +83,8 @@ After applying this fix (updating SOUL.md and rulebook.md), the agent should:
 
 A gateway restart is required after editing SOUL.md or rulebook.md for changes to take effect in new sessions:
 
-```bash
-systemctl --user restart hermes-gateway
+```powershell
+hermes gateway restart
 ```
 
 ## Related

@@ -70,25 +70,25 @@ Icarus is **not** an Obsidian plugin. Obsidian is an optional viewer/editor for 
 
 ### 1. Install the plugin
 
-```bash
+```powershell
 git clone https://github.com/esaradev/icarus-plugin.git
-mkdir -p ~/.hermes/plugins/icarus
-cp -r icarus-plugin/* ~/.hermes/plugins/icarus/
+New-Item -ItemType Directory -Path "$env:USERPROFILE\.hermes\plugins\icarus" -Force
+Copy-Item -Recurse icarus-plugin\* "$env:USERPROFILE\.hermes\plugins\icarus\"
 ```
 
 ### 2. Set environment variables
 
-Add to your Hermes profile `.env` (e.g. `~/.hermes/.env`):
+Add to your Hermes profile `.env` (e.g. `%USERPROFILE%\.hermes\.env`):
 
-```bash
+```ini
 # required: where Icarus writes notes
-FABRIC_DIR=~/Documents/my-vault/icarus
+FABRIC_DIR=C:/Users/your-user/Documents/my-vault/icarus
 
 # optional: enable Obsidian wikilinks and daily notes
 ICARUS_OBSIDIAN=1
 
 # optional: vault root (if icarus notes are a subfolder)
-OBSIDIAN_VAULT_PATH=~/Documents/my-vault
+OBSIDIAN_VAULT_PATH=C:/Users/your-user/Documents/my-vault
 
 # optional: for training/eval tools
 TOGETHER_API_KEY=tok-...
@@ -96,7 +96,7 @@ TOGETHER_API_KEY=tok-...
 
 ### 3. Start Hermes and verify
 
-```bash
+```powershell
 hermes chat
 ```
 
@@ -196,14 +196,14 @@ Icarus is a **Hermes plugin**, not an Obsidian plugin. Obsidian just reads the m
 
 Dedicated vault (Icarus IS the vault):
 ```
-FABRIC_DIR=~/icarus-vault
+FABRIC_DIR=C:/Users/your-user/icarus-vault
 # OBSIDIAN_VAULT_PATH not needed
 ```
 
 Subfolder in existing vault:
 ```
-FABRIC_DIR=~/my-vault/icarus-notes
-OBSIDIAN_VAULT_PATH=~/my-vault
+FABRIC_DIR=C:/Users/your-user/my-vault/icarus-notes
+OBSIDIAN_VAULT_PATH=C:/Users/your-user/my-vault
 ```
 
 ## Builder -> reviewer -> fix
@@ -258,12 +258,13 @@ Export modes:
 
 ## Profiles (Hermes v0.6.0)
 
-```bash
+```powershell
 hermes profile create coder
 hermes profile create reviewer --clone
-mkdir -p ~/.hermes-coder/plugins/icarus ~/.hermes-reviewer/plugins/icarus
-cp -r icarus-plugin/* ~/.hermes-coder/plugins/icarus/
-cp -r icarus-plugin/* ~/.hermes-reviewer/plugins/icarus/
+New-Item -ItemType Directory -Path "$env:USERPROFILE\.hermes-coder\plugins\icarus" -Force
+New-Item -ItemType Directory -Path "$env:USERPROFILE\.hermes-reviewer\plugins\icarus" -Force
+Copy-Item -Recurse icarus-plugin\* "$env:USERPROFILE\.hermes-coder\plugins\icarus\"
+Copy-Item -Recurse icarus-plugin\* "$env:USERPROFILE\.hermes-reviewer\plugins\icarus\"
 hermes -p coder chat
 ```
 
@@ -284,9 +285,9 @@ fallback_model:
 
 **"tool not found" when calling fabric_write or fabric_recall**
 - Run `/plugins` in Hermes. If Icarus isn't listed, the plugin isn't installed in the right directory.
-- Check: `ls ~/.hermes/plugins/icarus/__init__.py` (global) or `ls ~/.hermes-YOUR_PROFILE/plugins/icarus/__init__.py` (profile-specific Hermes home).
+- Check: `dir "$env:USERPROFILE\.hermes\plugins\icarus\__init__.py"` (global) or the profile-specific Hermes home.
 - The plugin needs `__init__.py`, `plugin.yaml`, and all `.py` files in the same directory.
-- If you copied the repo twice, make sure you do **not** have a nested path like `~/.hermes/plugins/icarus/icarus-plugin/__init__.py`.
+- If you copied the repo twice, make sure you do **not** have a nested path like `%USERPROFILE%\.hermes\plugins\icarus\icarus-plugin\__init__.py`.
 
 **Notes not showing in Obsidian**
 - Check `FABRIC_DIR` points to a directory inside your Obsidian vault.
@@ -313,17 +314,16 @@ After setup, verify everything works:
 
 ```
 1. In Hermes: "write a test note about validating the setup"
-2. Check: ls $FABRIC_DIR/*.md (should show a new file)
-3. Check: ls $FABRIC_DIR/daily/ (should show today's date)
+2. Check: dir $env:FABRIC_DIR\*.md (should show a new file)
+3. Check: dir $env:FABRIC_DIR\daily\ (should show today's date)
 4. Open vault in Obsidian: note should appear with frontmatter
 5. In Hermes: fabric_brief() (should show the note in recent work)
 ```
 
 ## Smoke test
 
-```bash
-bash scripts/smoke-handoff.sh
-bash scripts/test-plugin.sh
+```powershell
+python scripts/eval-replacement.py
 ```
 
 ## Requirements
@@ -331,7 +331,7 @@ bash scripts/test-plugin.sh
 - [Hermes](https://github.com/NousResearch/hermes-agent) v0.6.0+
 - Python 3.10+
 - `TOGETHER_API_KEY` in `.env` (for training/eval tools)
-- `FABRIC_DIR` set in `.env` (defaults to `~/fabric/`)
+- `FABRIC_DIR` set in `.env` (defaults to `C:/Users/your-user/fabric/`)
 
 ## Files
 
@@ -347,8 +347,6 @@ fabric-retrieve.py    ranked retrieval with scoring
 export-training.py    training pair extraction with quality filtering
 scripts/
   eval-replacement.py model comparison eval
-  smoke-handoff.sh    end-to-end handoff proof
-  test-plugin.sh      66-test fixture suite
 ```
 
 ## License

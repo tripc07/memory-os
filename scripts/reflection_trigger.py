@@ -11,8 +11,8 @@ Regras:
 - Fail-open: se Redis/ARQ indisponível, sai silenciosamente
 - Nunca bloqueia o path crítico de query/ingestão
 
-Uso (cron):
-  */5 * * * * /home/calli/ai-stack/cognitive-agent/venv/bin/python /home/calli/ai-stack/scripts/reflection_trigger.py >> /home/calli/.hermes/logs/reflection_trigger.cron.log 2>&1
+Uso (Windows Task Scheduler or manual):
+  python scripts/reflection_trigger.py
 """
 
 import os

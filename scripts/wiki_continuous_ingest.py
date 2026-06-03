@@ -76,7 +76,7 @@ async def redis_ready() -> bool:
 
 async def main():
     if not await redis_ready():
-        print("❌ Redis não pronto. Docker stack pode estar subindo. Abortando.")
+        print("❌ Redis não pronto. Serviço pode estar iniciando. Abortando.")
         return
 
     state = load_state()

@@ -1,50 +1,29 @@
 # Infrastructure
 
-> Docker services, cronjobs, and environment configuration that support the 6 memory layers.
+> Native Windows services, scheduled tasks, and environment configuration that support the 6 memory layers.
 
-## Docker Services
+## Services
 
-The vector and pipeline layers run as Docker containers:
+The vector and pipeline layers run as native Windows processes:
 
-```yaml
-# docker-compose.yml
-services:
-  qdrant:
-    image: qdrant/qdrant:v1.17.1
-    ports:
-      - "6333:6333"
-      - "6334:6334"
-    volumes:
-      - ./qdrant_data:/qdrant/storage
-    restart: unless-stopped
+| Service | Binary / Command | Default Port |
+|---------|-----------------|-------------|
+| **Qdrant** | `qdrant.exe` (from [GitHub releases](https://github.com/qdrant/qdrant/releases)) | 6333 |
+| **Redis** | Native build via winget, Memurai, or Chocolatey | 6379 |
+| **ARQ Worker** | `python docker\worker\main.py --run-worker` | — |
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    command: redis-server --requirepass ${REDIS_PASSWORD}
-    restart: unless-stopped
-
-  worker:
-    build: ./worker
-    depends_on:
-      - qdrant
-      - redis
-    environment:
-      - QDRANT_URL=http://qdrant:6333
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - EMBEDDING_DIMS=${EMBEDDING_DIMS:-4096}
-      - COLLECTION_NAME=${COLLECTION_NAME:-knowledge_base}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-    restart: unless-stopped
-```
+Start all services: `.\setup\start_services.ps1`
+Stop all services: `.\setup\stop_services.ps1`
 
 **Key configuration:**
 - `EMBEDDING_DIMS=4096` — must match Qdrant collection schema
 - `COLLECTION_NAME=knowledge_base` — target collection for all wiki ingestion
-- Redis password required — set in `.env`, used by both Redis container and worker
+- Redis password required — set in `.env`, used by both Redis and worker
+- `REDIS_HOST=127.0.0.1` and `QDRANT_HOST=localhost` — native networking
 
-## Cronjobs
+## Scheduled Tasks
+
+Maintenance scripts are registered as Windows Task Scheduler jobs via `setup\setup_windows.ps1`:
 
 | Job | Recommended schedule | What it does |
 |-----|---------------------|--------------|
@@ -67,7 +46,7 @@ services:
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `FABRIC_DIR` | Where Icarus writes fabric entries | `/home/your-user/vault/fabric` |
+| `FABRIC_DIR` | Where Icarus writes fabric entries | `C:/Users/your-user/vault/fabric` |
 | `OPENROUTER_API_KEY` | Embedding + LLM extraction | `sk-or-...` |
 | `REDIS_PASSWORD` | Redis authentication | (generated) |
 
@@ -103,35 +82,22 @@ services:
 | Icarus plugin | `$HERMES_HOME/plugins/icarus/` |
 | Fabric entries | `$FABRIC_DIR` |
 | Wiki files | `$VAULT_PATH/wiki/` |
-| Qdrant data | `./qdrant_data/` (Docker volume) |
-| Docker compose | Project root |
+| Qdrant data | `%LOCALAPPDATA%\qdrant\storage\` |
+| Scheduled tasks | Windows Task Scheduler (`MemoryOS-*`) |
 | Cron scripts | Project scripts directory |
 
 ## System requirements
 
 | Resource | Minimum | Recommended |
 |----------|---------|-------------|
+| OS | Windows 10 21H2+ or 11 | x64 required |
 | RAM | 8 GB | 16 GB (Qdrant + Redis + ARQ worker) |
 | Disk | 20 GB | 50 GB (Qdrant vectors + wiki files) |
-| Docker | 24.0+ (Linux/macOS) | Latest stable |
 | Python | 3.11+ | 3.12 (tested) |
 | Hermes Agent | 0.14.0+ | 0.15.2 (tested) |
 | Qdrant | 1.17+ | 1.17.1 (tested) |
+| Redis | Native build | winget, Memurai, or Chocolatey |
+| Build Tools | Visual Studio 2022+ | C++ workload (for fastembed) |
+| Scheduling | Windows Task Scheduler | Managed via PowerShell |
 
-### Windows native (no Docker)
-
-Memory OS can run natively on Windows without Docker or WSL. See [setup/install_windows.md](../setup/install_windows.md) for full instructions.
-
-| Resource | Requirement |
-|----------|-------------|
-| OS | Windows 10 21H2+ or 11 (x64) |
-| Redis | Native build via winget, Memurai, or Chocolatey |
-| Qdrant | Windows binary from [GitHub releases](https://github.com/qdrant/qdrant/releases) |
-| Build Tools | Visual Studio Build Tools 2022+ (C++ workload, for fastembed) |
-| Scheduling | Windows Task Scheduler (replaces cron) |
-
-Key differences:
-- Services run as background processes instead of containers
-- Use `127.0.0.1`/`localhost` instead of Docker DNS names (`redis`, `qdrant`)
-- Use `localhost:11434` for local Ollama instead of `host.docker.internal:11434`
-- Scheduled tasks managed via PowerShell (`setup/start_services.ps1`, `setup/stop_services.ps1`)
+See [setup/install_windows.md](../setup/install_windows.md) for full installation instructions.

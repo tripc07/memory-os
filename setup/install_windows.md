@@ -1,7 +1,7 @@
-# Windows Native Setup Guide
+# Setup Guide
 
-> Step-by-step installation of the Memory OS stack on Windows **without Docker or WSL**.
-> All services (Redis, Qdrant, ARQ Worker) run as native Windows processes.
+> Step-by-step installation of the Memory OS stack on Windows.
+> All services (Redis, Qdrant, ARQ Worker) run as native Windows processes — no Docker or WSL required.
 
 ## Prerequisites
 
@@ -205,18 +205,18 @@ Disable-ScheduledTask -TaskName "MemoryOS-ReflectionTrigger"
 Get-ScheduledTask -TaskName "MemoryOS-*" | Unregister-ScheduledTask -Confirm:$false
 ```
 
-## Architecture Differences (Windows vs Docker)
+## Architecture
 
-| Component | Docker Setup | Windows Native |
-|---|---|---|
-| Redis | Container (`redis:7-alpine`) | Native Windows binary or Memurai |
-| Qdrant | Container (`qdrant/qdrant:v1.17.1`) | Native `.exe` from GitHub releases |
-| ARQ Worker | Container (custom `python:3.12-slim`) | `python docker\worker\main.py --run-worker` |
-| Networking | Docker internal DNS (`redis`, `qdrant`) | `127.0.0.1` / `localhost` |
-| Scheduling | Linux cron or Hermes cron | Windows Task Scheduler |
-| Log files | Docker logs | `%USERPROFILE%\.hermes\logs\` |
-| Data volumes | Docker named volumes | Local directories |
-| Embedding | `host.docker.internal:11434` for Ollama | `localhost:11434` for Ollama |
+| Component | How it runs |
+|---|---|
+| Redis | Native Windows binary or Memurai |
+| Qdrant | Native `.exe` from GitHub releases |
+| ARQ Worker | `python docker\worker\main.py --run-worker` |
+| Networking | `127.0.0.1` / `localhost` |
+| Scheduling | Windows Task Scheduler |
+| Log files | `%USERPROFILE%\.hermes\logs\` |
+| Data volumes | Local directories |
+| Embedding | `localhost:11434` for Ollama |
 
 ## Troubleshooting
 
@@ -239,9 +239,8 @@ $env:MAA_ENV_PATH = "C:\Users\your-user\memory-os\.env"
 Always use forward slashes in `.env` file paths. Python's `pathlib` handles them correctly on Windows. Avoid `C:\Users\...` — use `C:/Users/...` instead.
 
 ### Worker can't connect to Redis/Qdrant
-For native mode, ensure these environment variables are set:
+Ensure these environment variables are set:
 ```powershell
 $env:REDIS_HOST = "127.0.0.1"
 $env:QDRANT_HOST = "localhost"
 ```
-The Docker defaults (`redis`, `qdrant`) are Docker DNS names and won't resolve on native Windows.
