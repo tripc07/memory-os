@@ -60,7 +60,7 @@ curl -s -X PUT http://localhost:6333/collections/knowledge_base \
 | Dense embedding | Qwen3-Embedding-8B via OpenRouter | 4096 dimensions, 32K context, $0.01/1M tokens |
 | Sparse embedding | FastEmbed BM25 (local) | Runs in-process, no API call |
 | Queue | Redis (ARQ) | Async job queue for ingestion |
-| Worker | Docker (ARQ Worker) | Processes embedding + Qdrant upsert |
+| Worker | ARQ Worker (native Python) | Processes embedding + Qdrant upsert |
 
 ### Environment alignment checklist
 

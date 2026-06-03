@@ -10,7 +10,7 @@ The vector and pipeline layers run as native Windows processes:
 |---------|-----------------|-------------|
 | **Qdrant** | `qdrant.exe` (from [GitHub releases](https://github.com/qdrant/qdrant/releases)) | 6333 |
 | **Redis** | Native build via winget, Memurai, or Chocolatey | 6379 |
-| **ARQ Worker** | `python docker\worker\main.py --run-worker` | — |
+| **ARQ Worker** | `python worker\main.py --run-worker` | — |
 
 Start all services: `.\setup\start_services.ps1`
 Stop all services: `.\setup\stop_services.ps1`

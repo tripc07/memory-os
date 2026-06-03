@@ -102,7 +102,7 @@ if (ShouldStart "qdrant") {
 
 # ── ARQ Worker ───────────────────────────────────────────────────────────────
 if (ShouldStart "worker") {
-    $workerScript = Join-Path $RepoRoot "docker" "worker" "main.py"
+    $workerScript = Join-Path $RepoRoot "worker" "main.py"
     if (Test-Path $workerScript) {
         $workerLog = Join-Path $LogDir "worker.log"
         $workerPid = Join-Path $PidDir "worker.pid"

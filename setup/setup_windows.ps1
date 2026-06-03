@@ -123,7 +123,7 @@ if (Test-Path $reqFile) {
 }
 
 # Worker dependencies (same packages needed for running worker natively)
-$workerReqFile = Join-Path $RepoRoot "docker" "worker" "requirements.txt"
+$workerReqFile = Join-Path $RepoRoot "worker" "requirements.txt"
 if (Test-Path $workerReqFile) {
     if (-not $DryRun) {
         & python -m pip install -r $workerReqFile --quiet
@@ -294,7 +294,7 @@ Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Copy .env.example to .env and fill in your values"
 Write-Host "  2. Start Redis:  redis-server --requirepass YOUR_PASSWORD"
 Write-Host "  3. Start Qdrant: $QdrantDir\qdrant.exe"
-Write-Host "  4. Start ARQ worker: python docker\worker\main.py --run-worker"
+Write-Host "  4. Start ARQ worker: python worker\main.py --run-worker"
 Write-Host "  5. Copy icarus/ to $HermesHome\plugins\icarus\"
 Write-Host "  6. Restart Hermes gateway: hermes gateway restart"
 Write-Host ""

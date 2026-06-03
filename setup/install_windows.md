@@ -80,7 +80,7 @@ Verify:
 
 ```powershell
 pip install -r requirements.txt
-pip install -r docker\worker\requirements.txt
+pip install -r worker\requirements.txt
 ```
 
 > **Note:** If `fastembed` fails to install, ensure Visual Studio Build Tools are installed with the "Desktop development with C++" workload.
@@ -117,7 +117,7 @@ MEMORY_STORE_PATH=C:/Users/your-user/.hermes/memory_store.db
 HERMES_LOGS_DIR=C:/Users/your-user/.hermes/logs
 MAA_ENV_PATH=C:/Users/your-user/memory-os/.env
 
-# Native mode — services run on localhost, not Docker networking
+# Native mode — services run on localhost
 REDIS_HOST=127.0.0.1
 QDRANT_HOST=localhost
 
@@ -158,7 +158,7 @@ redis-server --port 6379 --bind 127.0.0.1 --requirepass YOUR_PASSWORD --appendon
 # ARQ Worker (from repo root)
 $env:REDIS_HOST = "127.0.0.1"
 $env:QDRANT_HOST = "localhost"
-python docker\worker\main.py --run-worker
+python worker\main.py --run-worker
 ```
 
 ### Stop all services:
@@ -211,7 +211,7 @@ Get-ScheduledTask -TaskName "MemoryOS-*" | Unregister-ScheduledTask -Confirm:$fa
 |---|---|
 | Redis | Native Windows binary or Memurai |
 | Qdrant | Native `.exe` from GitHub releases |
-| ARQ Worker | `python docker\worker\main.py --run-worker` |
+| ARQ Worker | `python worker\main.py --run-worker` |
 | Networking | `127.0.0.1` / `localhost` |
 | Scheduling | Windows Task Scheduler |
 | Log files | `%USERPROFILE%\.hermes\logs\` |
