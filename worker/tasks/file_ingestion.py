@@ -1,6 +1,6 @@
 """
 Tasks — File-based wiki ingestion (Phase B: continuous).
-Receives a file path to a .md file inside the container (e.g. /wiki/concepts/new.md),
+Receives an absolute path to a .md file under WIKI_PATH,
 extracts frontmatter, generates DENSE + BM25 SPARSE embeddings, upserts into knowledge_base_hybrid.
 """
 import logging
@@ -19,9 +19,13 @@ from services.sparse_embedding import get_sparse_embedding
 logger = logging.getLogger("cognitive-worker.file_ingest")
 
 COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "knowledge_base")
-QDRANT_HOST = os.environ.get("QDRANT_HOST", "qdrant-maas")
+QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", "6333"))
-WIKI_PATH = os.environ.get("WIKI_PATH", "/wiki")
+WIKI_PATH = (
+    os.environ.get("WIKI_PATH")
+    or os.environ.get("WIKI_ROOT")
+    or str(Path.home() / "vault" / "wiki")
+)
 MAX_TEXT_LEN = 8000
 
 

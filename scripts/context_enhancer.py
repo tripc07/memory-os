@@ -23,6 +23,7 @@ import requests
 import argparse
 import re
 import glob
+import sysconfig
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
 import time
@@ -54,7 +55,7 @@ FASTEMBED_VENV = os.environ.get("FASTEMBED_VENV", "")
 _FASTEMBED_PYTHON = FASTEMBED_VENV if FASTEMBED_VENV else sys.executable
 _FASTEMBED_SITEPKGS = os.environ.get(
     "FASTEMBED_SITEPKGS",
-    os.path.join(os.path.dirname(sys.executable), "../lib/python3.12/site-packages")
+    sysconfig.get_paths().get("purelib", "")
 )
 BM25_MODEL = "Qdrant/bm25"
 

@@ -10,7 +10,7 @@ from qdrant_client.models import Distance, VectorParams, SparseVectorParams, Mod
 
 logger = logging.getLogger("cognitive-worker.qdrant")
 
-QDRANT_HOST = os.environ.get("QDRANT_HOST", "qdrant-maas")
+QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", "6333"))
 QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY", "")
 EMBEDDING_DIMS = int(os.environ.get("EMBEDDING_DIMS", "4096"))
@@ -23,7 +23,12 @@ def get_qdrant_client() -> AsyncQdrantClient:
     """Returns a singleton of the async Qdrant client."""
     global _client
     if _client is None:
-        _client = AsyncQdrantClient(host=QDRANT_HOST, port=QDRANT_PORT, api_key=QDRANT_API_KEY, https=False)
+        _client = AsyncQdrantClient(
+            host=QDRANT_HOST,
+            port=QDRANT_PORT,
+            api_key=QDRANT_API_KEY or None,
+            https=False,
+        )
         logger.info(f"Connected to Qdrant at {QDRANT_HOST}:{QDRANT_PORT}")
     return _client
 

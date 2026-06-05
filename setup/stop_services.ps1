@@ -15,7 +15,11 @@ param(
     [string[]]$Only
 )
 
-$HermesHome = $env:HERMES_HOME ?? (Join-Path $env:USERPROFILE ".hermes")
+$DefaultHermesHome = Join-Path $env:LOCALAPPDATA "hermes"
+if (-not (Test-Path $DefaultHermesHome)) {
+    $DefaultHermesHome = Join-Path $env:USERPROFILE ".hermes"
+}
+$HermesHome = if ($env:HERMES_HOME) { $env:HERMES_HOME } else { $DefaultHermesHome }
 $PidDir     = Join-Path $HermesHome "pids"
 
 function ShouldStop($name) {
@@ -30,17 +34,17 @@ foreach ($svc in $services) {
 
     $pidFile = Join-Path $PidDir "$svc.pid"
     if (Test-Path $pidFile) {
-        $pid = Get-Content $pidFile
+        $pidValue = Get-Content $pidFile
         try {
-            $proc = Get-Process -Id $pid -ErrorAction Stop
-            Stop-Process -Id $pid -Force
-            Write-Host "  ✓ Stopped $svc (PID $pid)" -ForegroundColor Green
+            $proc = Get-Process -Id $pidValue -ErrorAction Stop
+            Stop-Process -Id $pidValue -Force
+            Write-Host "  [OK] Stopped $svc (PID $pidValue)" -ForegroundColor Green
         } catch {
-            Write-Host "  ○ $svc not running (PID $pid)" -ForegroundColor DarkGray
+            Write-Host "  [--] $svc not running (PID $pidValue)" -ForegroundColor DarkGray
         }
         Remove-Item $pidFile -Force
     } else {
-        Write-Host "  ○ $svc — no PID file found" -ForegroundColor DarkGray
+        Write-Host "  [--] $svc - no PID file found" -ForegroundColor DarkGray
     }
 }
 

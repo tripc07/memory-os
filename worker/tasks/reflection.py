@@ -274,7 +274,7 @@ async def micro_reflection(qdrant: AsyncQdrantClient) -> dict:
             vector = point_data[0].vector.get("dense") if isinstance(point_data[0].vector, dict) else point_data[0].vector
             
             async with httpx.AsyncClient() as client:
-                qdrant_host = os.environ.get("QDRANT_HOST", "qdrant-maas")
+                qdrant_host = os.environ.get("QDRANT_HOST", "localhost")
                 qdrant_port = int(os.environ.get("QDRANT_PORT", "6333"))
                 resp = await client.post(
                     f"http://{qdrant_host}:{qdrant_port}/collections/{COLLECTION_NAME}/points/search",
