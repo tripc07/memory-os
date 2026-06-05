@@ -29,6 +29,18 @@ from pathlib import Path
 import time
 from datetime import datetime, timezone
 
+from dotenv import load_dotenv
+
+# Load the same environment file used by the Memory OS scheduled tasks, then
+# fall back to the repo-local .env for direct developer runs.
+DEFAULT_HERMES_HOME = Path(os.environ.get("HERMES_HOME", str(Path.home() / ".hermes")))
+ENV_PATH = Path(os.environ.get("MAA_ENV_PATH", str(DEFAULT_HERMES_HOME / ".env")))
+if ENV_PATH.exists():
+    load_dotenv(ENV_PATH)
+REPO_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+if REPO_ENV_PATH.exists():
+    load_dotenv(REPO_ENV_PATH)
+
 # ─── Config ────────────────────────────────────────────────────────────────
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
 if not OPENROUTER_KEY:
@@ -40,8 +52,10 @@ if not OPENROUTER_KEY:
                 break
 
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
-COLLECTION = os.environ.get("QDRANT_COLLECTION", "knowledge_base")
+COLLECTION = os.environ.get("COLLECTION_NAME", os.environ.get("QDRANT_COLLECTION", "knowledge_base"))
 
+EMBEDDING_API_KEY = os.environ.get("EMBEDDING_API_KEY")
+EMBEDDING_API_BASE = os.environ.get("EMBEDDING_API_BASE", "https://openrouter.ai/api/v1").rstrip("/")
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "qwen/qwen3-embedding-8b")
 TOP_K_DEFAULT = 3
 SCORE_THRESHOLD_DEFAULT = 0.55
@@ -182,16 +196,19 @@ def _strip_prompt_injection(text: str) -> str:
 # ─── Core ───────────────────────────────────────────────────────────────────
 
 def embed_query(text: str) -> Optional[List[float]]:
-    """Generate dense embedding via OpenRouter qwen/qwen3-embedding-8b."""
-    if not OPENROUTER_KEY:
+    """Generate dense embedding via the configured OpenAI-compatible backend."""
+    if "openrouter" in EMBEDDING_API_BASE.lower() and not OPENROUTER_KEY:
         return None
     try:
+        headers = {"Content-Type": "application/json"}
+        if "openrouter" in EMBEDDING_API_BASE.lower():
+            headers["Authorization"] = f"Bearer {OPENROUTER_KEY}"
+        elif EMBEDDING_API_KEY:
+            headers["Authorization"] = f"Bearer {EMBEDDING_API_KEY}"
+
         resp = requests.post(
-            "https://openrouter.ai/api/v1/embeddings",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_KEY}",
-                "Content-Type": "application/json"
-            },
+            f"{EMBEDDING_API_BASE}/embeddings",
+            headers=headers,
             json={
                 "model": EMBEDDING_MODEL,
                 "input": text[:MAX_TEXT_LEN]
@@ -213,6 +230,8 @@ def embed_query_sparse(text: str) -> Optional[Tuple[List[int], List[float]]]:
     Fail-open: if it fails, return None. Caller falls back to dense-only.
     """
     try:
+        env = os.environ.copy()
+        env["FASTEMBED_SITEPKGS"] = _FASTEMBED_SITEPKGS
         result = subprocess.run(
             [_FASTEMBED_PYTHON, "-c", """\
 import os, sys, json
@@ -224,8 +243,11 @@ sparse = list(model.embed([query]))[0]
 print(json.dumps({"indices": sparse.indices.tolist(), "values": sparse.values.tolist()}))
 """],
             input=text,
-            capture_output=True, text=True, timeout=15
+            capture_output=True, text=True, timeout=15, env=env
         )
+        if result.returncode != 0:
+            stderr = result.stderr.strip()[:300]
+            raise RuntimeError(stderr or f"fastembed subprocess exited {result.returncode}")
         data = json.loads(result.stdout.strip())
         return data["indices"], data["values"]
     except Exception as e:

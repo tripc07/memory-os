@@ -27,22 +27,24 @@ except ImportError:
 
 # ─── Config ────────────────────────────────────────────────────────────────
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
-QDRANT_URL = "http://localhost:6333"
-COLLECTION = "knowledge_base"
+EMBEDDING_API_KEY = os.environ.get("EMBEDDING_API_KEY")
+EMBEDDING_API_BASE = os.environ.get("EMBEDDING_API_BASE", "https://openrouter.ai/api/v1").rstrip("/")
+QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
+COLLECTION = os.environ.get("COLLECTION_NAME", os.environ.get("QDRANT_COLLECTION", "knowledge_base"))
 WIKI_ROOT = Path(os.environ.get("WIKI_ROOT", str(Path.home() / "Vault" / "wiki")))
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "qwen/qwen3-embedding-8b")
-EMBEDDING_DIMS = 4096
+EMBEDDING_DIMS = int(os.environ.get("EMBEDDING_DIMS", "4096"))
 MAX_TEXT_LEN = 8000      # truncate text for embedding (model context limit)
 BATCH_SIZE = 8           # parallel embedding requests
 RATE_LIMIT_SLEEP = 0.5   # seconds between batches
 
-if not OPENROUTER_KEY:
+if "openrouter" in EMBEDDING_API_BASE.lower() and not OPENROUTER_KEY:
     print("❌ OPENROUTER_API_KEY não encontrada no ambiente")
     sys.exit(1)
 
 print(f"📁 Wiki root: {WIKI_ROOT}")
 print(f"🎯 Coleção: {COLLECTION}")
-print(f"🔑 OpenRouter: {OPENROUTER_KEY[:20]}...")
+print(f"🧠 Embeddings: {EMBEDDING_MODEL} @ {EMBEDDING_API_BASE} ({EMBEDDING_DIMS}d)")
 
 # ─── Encontrar todos os .md ────────────────────────────────────────────────
 md_files = sorted(WIKI_ROOT.rglob("*.md"))
@@ -95,19 +97,23 @@ def get_sparse_vector(text: str) -> dict | None:
 
 
 async def get_embedding(session: aiohttp.ClientSession, text: str) -> list[float] | None:
-    """Gera embedding denso via OpenRouter."""
+    """Gera embedding denso via backend OpenAI-compatible configurado."""
     payload = {
         "model": EMBEDDING_MODEL,
         "input": text[:MAX_TEXT_LEN],
-        "dimensions": EMBEDDING_DIMS,
     }
+    if "openrouter" in EMBEDDING_API_BASE.lower():
+        payload["dimensions"] = EMBEDDING_DIMS
+    headers = {"Content-Type": "application/json"}
+    if "openrouter" in EMBEDDING_API_BASE.lower():
+        headers["Authorization"] = f"Bearer {OPENROUTER_KEY}"
+    elif EMBEDDING_API_KEY:
+        headers["Authorization"] = f"Bearer {EMBEDDING_API_KEY}"
+
     try:
         async with session.post(
-            "https://openrouter.ai/api/v1/embeddings",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_KEY}",
-                "Content-Type": "application/json",
-            },
+            f"{EMBEDDING_API_BASE}/embeddings",
+            headers=headers,
             json=payload,
             timeout=aiohttp.ClientTimeout(total=30),
         ) as resp:
@@ -116,7 +122,11 @@ async def get_embedding(session: aiohttp.ClientSession, text: str) -> list[float
                 print(f"⚠️ Embedding HTTP {resp.status}: {body[:200]}")
                 return None
             data = await resp.json()
-            return data["data"][0]["embedding"]
+            vec = data["data"][0]["embedding"]
+            if len(vec) != EMBEDDING_DIMS:
+                print(f"⚠️ Embedding dims mismatch: expected {EMBEDDING_DIMS}, got {len(vec)}")
+                return None
+            return vec
     except Exception as e:
         print(f"⚠️ Embedding error: {e}")
         return None

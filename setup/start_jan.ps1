@@ -42,7 +42,14 @@ if (-not (Test-Path $JanExe)) {
     exit 1
 }
 
-# Check if already running
+# Check if already running - detect port from EMBEDDING_API_BASE
+$JanPort = $env:JAN_PORT
+if (-not $JanPort) {
+    if ($env:EMBEDDING_API_BASE -match 'localhost:(\d+)') { $JanPort = $matches[1] }
+    elseif ($env:EMBEDDING_API_BASE -match '127.0.0.1:(\d+)') { $JanPort = $matches[1] }
+}
+if (-not $JanPort) { $JanPort = "6767" }
+
 if (Test-Path $JanPid) {
     try {
         $existingPid = Get-Content $JanPid -ErrorAction Stop
@@ -58,10 +65,9 @@ if (Test-Path $JanPid) {
 }
 
 # Check if port is already in use
-$janPort = if ($env:JAN_PORT) { $env:JAN_PORT } else { "6767" }
-$portInUse = Get-NetTCPConnection -LocalPort $janPort -ErrorAction SilentlyContinue
+$portInUse = Get-NetTCPConnection -LocalPort $JanPort -ErrorAction SilentlyContinue
 if ($portInUse) {
-    Write-Host "  [--] Port $janPort already in use - Jan may be running" -ForegroundColor DarkGray
+    Write-Host "  [--] Port $JanPort already in use - Jan may be running" -ForegroundColor DarkGray
     exit 0
 }
 
@@ -94,14 +100,19 @@ if ($Embedding) {
     }
 }
 
-# Build arguments
-if ($Detach) {
-    $Args = @("serve", $Model, "--detach")
-} else {
-    $Args = @("serve", $Model)
+# Build arguments - use EMBEDDING_MODEL if set for consistency
+$JanModel = $Model
+if ($env:EMBEDDING_MODEL -and $Model -eq "Jan-v3.5-4B-Q4_K_XL") {
+    $JanModel = $env:EMBEDDING_MODEL
 }
 
-Write-Host "Starting Jan AI server ($Model) on port $janPort..." -ForegroundColor Yellow
+if ($Detach) {
+    $Args = @("serve", $JanModel, "--detach")
+} else {
+    $Args = @("serve", $JanModel)
+}
+
+Write-Host "Starting Jan AI server ($JanModel) on port $JanPort..." -ForegroundColor Yellow
 $JanLog = Join-Path $LogDir "jan.log"
 
 # Start Jan in background
@@ -109,14 +120,14 @@ $proc = Start-Process -FilePath $JanExe -ArgumentList $Args -PassThru -WindowSty
 Set-Content -Path $JanPid -Value $proc.Id
 
 Write-Host "  [OK] Jan started (PID $($proc.Id))" -ForegroundColor Green
-Write-Host "  Endpoint: http://127.0.0.1:$janPort/v1" -ForegroundColor Cyan
+Write-Host "  Endpoint: http://127.0.0.1:$JanPort/v1" -ForegroundColor Cyan
 
 # Give it a moment to initialize
 Start-Sleep -Seconds 2
 
 # Verify
 try {
-    $resp = Invoke-RestMethod -Uri "http://127.0.0.1:$janPort/v1/models" -TimeoutSec 5
+    $resp = Invoke-RestMethod -Uri "http://127.0.0.1:$JanPort/v1/models" -TimeoutSec 5
     Write-Host "  [OK] Jan API responding" -ForegroundColor Green
 } catch {
     Write-Warning "Jan may still be initializing. Check logs at $JanLog"

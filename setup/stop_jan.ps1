@@ -42,8 +42,13 @@ if (Test-Path $JanPid) {
     Write-Host "  [--] No Jan PID file found at $JanPid" -ForegroundColor DarkGray
 }
 
-# Check for any remaining jan processes by port
-$janPort = if ($env:JAN_PORT) { $env:JAN_PORT } else { "6767" }
+# Check for any remaining jan processes by port - detect from EMBEDDING_API_BASE
+$janPort = $env:JAN_PORT
+if (-not $janPort) {
+    if ($env:EMBEDDING_API_BASE -match 'localhost:(\d+)') { $janPort = $matches[1] }
+    elseif ($env:EMBEDDING_API_BASE -match '127.0.0.1:(\d+)') { $janPort = $matches[1] }
+}
+if (-not $janPort) { $janPort = "6767" }
 $janProcesses = Get-NetTCPConnection -LocalPort $janPort -ErrorAction SilentlyContinue | ForEach-Object {
     (Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).Id
 }

@@ -25,8 +25,10 @@ from pathlib import Path
 
 # ─── Config ────────────────────────────────────────────────────────────────
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
+EMBEDDING_API_KEY = os.environ.get("EMBEDDING_API_KEY")
+EMBEDDING_API_BASE = os.environ.get("EMBEDDING_API_BASE", "https://openrouter.ai/api/v1").rstrip("/")
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
-COLLECTION = os.environ.get("QDRANT_COLLECTION", "knowledge_base")
+COLLECTION = os.environ.get("COLLECTION_NAME", os.environ.get("QDRANT_COLLECTION", "knowledge_base"))
 if not OPENROUTER_KEY:
     _env = Path.home() / ".env"
     if _env.exists():
@@ -34,7 +36,7 @@ if not OPENROUTER_KEY:
             if ln.startswith("OPENROUTER_API_KEY="):
                 OPENROUTER_KEY = ln.split("=", 1)[1].strip().strip('"')
                 break
-EMBEDDING_MODEL = "qwen/qwen3-embedding-8b"
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "qwen/qwen3-embedding-8b")
 TOP_K = 5
 SCORE_THRESHOLD = 0.60
 WARN_THRESHOLD = 0.75          # docs wiki pura precisam de score mais alto para aviso
@@ -84,15 +86,18 @@ def infer_domain_tags(description: str) -> List[str]:
 # ─── Core ───────────────────────────────────────────────────────────────────
 
 def embed_text(text: str) -> Optional[List[float]]:
-    if not OPENROUTER_KEY:
+    if "openrouter" in EMBEDDING_API_BASE.lower() and not OPENROUTER_KEY:
         return None
     try:
+        headers = {"Content-Type": "application/json"}
+        if "openrouter" in EMBEDDING_API_BASE.lower():
+            headers["Authorization"] = f"Bearer {OPENROUTER_KEY}"
+        elif EMBEDDING_API_KEY:
+            headers["Authorization"] = f"Bearer {EMBEDDING_API_KEY}"
+
         r = requests.post(
-            "https://openrouter.ai/api/v1/embeddings",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_KEY}",
-                "Content-Type": "application/json"
-            },
+            f"{EMBEDDING_API_BASE}/embeddings",
+            headers=headers,
             json={"model": EMBEDDING_MODEL, "input": text[:8000]},
             timeout=REQUEST_TIMEOUT
         )
@@ -193,7 +198,7 @@ def validate_action(action_description: str, domain_tags: Optional[List[str]] = 
         infos = []
         
         for h in hits:
-            cat = classify_hit(h)
+            cat = classify_hit(h, action_description)
             if cat == "block":
                 blockers.append(h)
             elif cat == "warn":

@@ -91,8 +91,16 @@ if (ShouldStop "worker") {
 # -- Jan AI ------------------------------------------------------------------
 if (ShouldStop "jan") {
     Write-Host "[4/4] Stopping Jan AI..." -ForegroundColor Yellow
+
+    # Use EMBEDDING_API_BASE port if set, otherwise JAN_PORT, otherwise 6767
+    $JanPort = $env:JAN_PORT
+    if (-not $JanPort) {
+        if ($env:EMBEDDING_API_BASE -match ':(\d+)/') { $JanPort = $matches[1] }
+        elseif ($env:EMBEDDING_API_BASE -match ':(\d+)$') { $JanPort = $matches[1] }
+    }
+    if (-not $JanPort) { $JanPort = "6767" }
+
     $JanPid = Join-Path $PidDir "jan.pid"
-    $JanPort = if ($env:JAN_PORT) { $env:JAN_PORT } else { "6767" }
 
     if (Test-Path $JanPid) {
         try {

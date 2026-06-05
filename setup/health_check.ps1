@@ -26,24 +26,21 @@ Write-Host "==============================" -ForegroundColor Cyan
 Write-Host ""
 
 # Redis
-Write-Host "[Redis]" -NoNewline
 $redisPid = Join-Path $PidDir "redis.pid"
-$RedisPassword = if ($env:REDIS_PASSWORD) { $env:REDIS_PASSWORD } else { "" }
-try {
-    $redisCli = Get-Command redis-cli -ErrorAction SilentlyContinue
-    if ($redisCli) {
-        $pingArgs = if ($RedisPassword) { @("-a", $RedisPassword, "ping") } else { @("ping") }
-        $result = & $redisCli.Source @pingArgs 2>$null
-        if ($result -match "PONG") {
-            Write-Host "     [OK] Running - PONG received" -ForegroundColor Green
-        } else {
-            Write-Host "     [FAIL] Not responding" -ForegroundColor Red
-        }
+Write-Host "[Redis]" -NoNewline
+
+$redisCli = Get-Command redis-cli -ErrorAction SilentlyContinue
+if (-not $redisCli) {
+    Write-Host "     [WARN] redis-cli not installed" -ForegroundColor Yellow
+} else {
+    $pw = $redisCli.Source
+    $result = & $pw ping 2>$null
+    $resultTrimmed = $result.Trim()
+    if ($resultTrimmed -eq "PONG") {
+        Write-Host "     [OK] Running - PONG received" -ForegroundColor Green
     } else {
-        Write-Host "     [WARN] redis-cli not installed" -ForegroundColor Yellow
+        Write-Host "     [FAIL] Not responding" -ForegroundColor Red
     }
-} catch {
-    Write-Host "     [FAIL] Not running" -ForegroundColor Red
 }
 
 # Qdrant
@@ -74,7 +71,12 @@ if (Test-Path $workerPidFile) {
 # Jan AI
 Write-Host "[Jan AI]" -NoNewline
 $JanPid = Join-Path $PidDir "jan.pid"
-$JanPort = if ($env:JAN_PORT) { $env:JAN_PORT } else { "6767" }
+$JanPort = $env:JAN_PORT
+if (-not $JanPort) {
+    if ($env:EMBEDDING_API_BASE -match 'localhost:(\d+)') { $JanPort = $matches[1] }
+    elseif ($env:EMBEDDING_API_BASE -match '127.0.0.1:(\d+)') { $JanPort = $matches[1] }
+}
+if (-not $JanPort) { $JanPort = "6767" }
 
 # Check via port/API first
 try {
@@ -83,12 +85,12 @@ try {
 } catch {
     # Check PID file as fallback
     if (Test-Path $JanPid) {
-        $pid = Get-Content $JanPid
+        $savedPid = Get-Content $JanPid
         try {
-            $proc = Get-Process -Id ([int]$pid) -ErrorAction Stop
-            Write-Host "      [WARN] PID exists but API not responding (PID $pid)" -ForegroundColor Yellow
+            $proc = Get-Process -Id ([int]$savedPid) -ErrorAction Stop
+            Write-Host "      [WARN] PID exists but API not responding (PID $savedPid)" -ForegroundColor Yellow
         } catch {
-            Write-Host "      [FAIL] PID file stale (PID $pid)" -ForegroundColor Red
+            Write-Host "      [FAIL] PID file stale (PID $savedPid)" -ForegroundColor Red
         }
     } else {
         Write-Host "      [WARN] Not running (no PID file, port $JanPort free)" -ForegroundColor Yellow

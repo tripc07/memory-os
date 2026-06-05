@@ -156,6 +156,15 @@ if (ShouldStart "worker") {
 }
 
 # -- Jan AI ------------------------------------------------------------------
+# Use EMBEDDING_API_BASE port if set, otherwise JAN_PORT, otherwise 6767 (Jan default)
+$defaultJanPort = $env:JAN_PORT
+if (-not $defaultJanPort) {
+    if ($env:EMBEDDING_API_BASE -match ':(\d+)/') { $defaultJanPort = $matches[1] }
+    elseif ($env:EMBEDDING_API_BASE -match 'localhost:(\d+)') { $defaultJanPort = $matches[1] }
+}
+if (-not $defaultJanPort) { $defaultJanPort = "6767" }
+$JanPort = $defaultJanPort
+
 if (ShouldStart "jan") {
     Write-Host "[4/4] Checking Jan AI..." -ForegroundColor Yellow
 
@@ -165,7 +174,6 @@ if (ShouldStart "jan") {
     }
 
     $JanPid = Join-Path $PidDir "jan.pid"
-    $JanPort = if ($env:JAN_PORT) { $env:JAN_PORT } else { "6767" }
 
     # Check if already running via port
     try {
@@ -184,13 +192,14 @@ if (ShouldStart "jan") {
         }
 
         if (-not (Test-Path $JanPid)) {
-            $JanDataDir = Join-Path $env:APPDATA "Jan\data\llamacpp\models"
-            $ModelPath = Join-Path $JanDataDir "Jan-v3.5-4B-Q4_K_XL\model.gguf"
+            # Determine model from EMBEDDING_MODEL or use default
+            $defaultModel = if ($env:EMBEDDING_MODEL) { $env:EMBEDDING_MODEL } else { "Jan-v3.5-4B-Q4_K_XL" }
+            $JanModel = $defaultModel
 
-            $janArgs = @("serve", "Jan-v3.5-4B-Q4_K_XL")
+            $janArgs = @("serve", $JanModel)
             if ($Detach) { $janArgs += "--detach" }
 
-            Write-Host "Starting Jan AI server..." -ForegroundColor Yellow
+            Write-Host "Starting Jan AI server ($JanModel) on port $JanPort..." -ForegroundColor Yellow
             $proc = Start-Process -FilePath $JanExe -ArgumentList $janArgs -PassThru -WindowStyle Hidden
             Set-Content -Path $JanPid -Value $proc.Id
             Write-Host "  [OK] Jan started (PID $($proc.Id))" -ForegroundColor Green
