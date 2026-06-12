@@ -1,14 +1,14 @@
 <#
 .SYNOPSIS
-    Start Memory OS services (Redis, Qdrant, ARQ Worker) as background processes on Windows.
+    Start Memory OS services (Redis, Qdrant, llama.cpp, ARQ Worker) as background processes on Windows.
 
 .DESCRIPTION
-    Launches Redis, Qdrant, and the ARQ worker as background processes.
+    Launches Redis, Qdrant, llama.cpp, and the ARQ worker as background processes.
     PID files are written to $HERMES_HOME so stop_services.ps1 can shut them down.
 
 .EXAMPLE
     .\setup\start_services.ps1
-    .\setup\start_services.ps1 -Only redis,qdrant
+    .\setup\start_services.ps1 -Only redis,qdrant,llamacpp
 #>
 
 [CmdletBinding()]
@@ -71,6 +71,16 @@ function TestQdrantHealth() {
     }
 }
 
+function TestLlamaCppHealth() {
+    $llamaPort = if ($env:LLAMA_CPP_PORT) { $env:LLAMA_CPP_PORT } else { "8080" }
+    try {
+        $health = Invoke-RestMethod -Uri "http://127.0.0.1:$llamaPort/health" -TimeoutSec 2
+        return $health.status -eq "ok"
+    } catch {
+        return $false
+    }
+}
+
 function FindMemoryOsWorkerProcesses($workerScript) {
     $escapedWorkerScript = [regex]::Escape($workerScript)
     Get-CimInstance Win32_Process |
@@ -81,6 +91,30 @@ function FindMemoryOsWorkerProcesses($workerScript) {
             $_.CommandLine -match "--run-worker"
         } |
         Sort-Object ProcessId
+}
+
+function FindLlamaCppProcesses($modelPath, $llamaCppDir) {
+    $escapedModelPath = if ($modelPath) { [regex]::Escape($modelPath) } else { "" }
+    $escapedLlamaCppDir = if ($llamaCppDir) { [regex]::Escape($llamaCppDir) } else { "" }
+    Get-CimInstance Win32_Process |
+        Where-Object {
+            $_.Name -eq "llama-server.exe" -and
+            $_.CommandLine -and
+            (
+                ($escapedLlamaCppDir -and $_.CommandLine -match $escapedLlamaCppDir) -or
+                ($escapedModelPath -and $_.CommandLine -match $escapedModelPath) -or
+                ((-not $escapedLlamaCppDir) -and (-not $escapedModelPath))
+            )
+        } |
+        Sort-Object ProcessId
+}
+
+function FindWinGetExecutable($exeName) {
+    $packagesDir = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages"
+    if (-not (Test-Path $packagesDir)) { return $null }
+
+    Get-ChildItem -Path $packagesDir -Recurse -Filter $exeName -ErrorAction SilentlyContinue |
+        Select-Object -First 1 -ExpandProperty FullName
 }
 
 # -- Load .env ---------------------------------------------------------------
@@ -120,10 +154,12 @@ $RedisPassword = if ($env:REDIS_PASSWORD) { $env:REDIS_PASSWORD } else { "" }
 if (ShouldStart "redis") {
     $redisPid = Join-Path $PidDir "redis.pid"
     $redisServerCandidates = @(
+        (FindWinGetExecutable "redis-server.exe"),
         (Get-Command redis-server -ErrorAction SilentlyContinue).Source,
         "C:\Program Files\Redis\redis-server.exe"
     ) | Where-Object { $_ -and (Test-Path $_) }
     $redisCliCandidates = @(
+        (FindWinGetExecutable "redis-cli.exe"),
         (Get-Command redis-cli -ErrorAction SilentlyContinue).Source,
         "C:\Program Files\Redis\redis-cli.exe"
     ) | Where-Object { $_ -and (Test-Path $_) }
@@ -132,7 +168,7 @@ if (ShouldStart "redis") {
     foreach ($redisCli in $redisCliCandidates) {
         try {
             $pingArgs = @("ping")
-            if ($RedisPassword) { $pingArgs = @("-a", $RedisPassword, "ping") }
+            if ($RedisPassword) { $pingArgs = @("--no-auth-warning", "-a", $RedisPassword, "ping") }
             $ping = & $redisCli @pingArgs 2>$null
             if ($ping -match "PONG") {
                 $redisAlreadyRunning = $true
@@ -190,6 +226,61 @@ if (ShouldStart "qdrant") {
         Write-Host "  [OK] Qdrant started (PID $($proc.Id))" -ForegroundColor Green
     } else {
         Write-Warning "qdrant.exe not found at $qdrantExe. Run setup_windows.ps1 first."
+    }
+}
+
+# -- llama.cpp ---------------------------------------------------------------
+if (ShouldStart "llamacpp") {
+    $llamaCppDir = if ($env:LLAMA_CPP_DIR) { $env:LLAMA_CPP_DIR } else { Join-Path $env:LOCALAPPDATA "llama.cpp\b9601" }
+    $llamaExe = Join-Path $llamaCppDir "llama-server.exe"
+    $llamaModel = if ($env:LLAMA_CPP_MODEL_PATH) { $env:LLAMA_CPP_MODEL_PATH } else { Join-Path $HermesHome "models\qwen2.5-3b-instruct-q4_k_m.gguf" }
+    $llamaHost = if ($env:LLAMA_CPP_HOST) { $env:LLAMA_CPP_HOST } else { "127.0.0.1" }
+    $llamaPort = if ($env:LLAMA_CPP_PORT) { $env:LLAMA_CPP_PORT } else { "8080" }
+    $llamaCtx = if ($env:LLAMA_CPP_CTX_SIZE) { $env:LLAMA_CPP_CTX_SIZE } else { "4096" }
+    $llamaGpuLayers = if ($env:LLAMA_CPP_GPU_LAYERS) { $env:LLAMA_CPP_GPU_LAYERS } else { "all" }
+    $llamaAlias = if ($env:LLAMA_CPP_ALIAS) { $env:LLAMA_CPP_ALIAS } else { [System.IO.Path]::GetFileNameWithoutExtension($llamaModel) }
+    $llamaPid = Join-Path $PidDir "llamacpp.pid"
+    $llamaProc = GetProcessFromPidFile $llamaPid
+
+    if (-not $llamaProc) {
+        $existingLlama = @(FindLlamaCppProcesses $llamaModel $llamaCppDir)
+        if ($existingLlama.Count -gt 0) {
+            $llamaProc = Get-Process -Id $existingLlama[0].ProcessId -ErrorAction SilentlyContinue
+            if ($llamaProc) {
+                Set-Content -Path $llamaPid -Value $llamaProc.Id
+            }
+        }
+    }
+
+    if ($llamaProc -and (TestLlamaCppHealth)) {
+        Write-Host "  [OK] llama.cpp already running (PID $($llamaProc.Id))" -ForegroundColor Green
+    } elseif (TestLlamaCppHealth) {
+        $existingLlama = @(FindLlamaCppProcesses "" $llamaCppDir)
+        if ($existingLlama.Count -gt 0) {
+            Set-Content -Path $llamaPid -Value $existingLlama[0].ProcessId
+        }
+        Write-Host "  [OK] llama.cpp already healthy on 127.0.0.1:$llamaPort" -ForegroundColor Green
+    } elseif ((Test-Path $llamaExe) -and (Test-Path $llamaModel)) {
+        $llamaOut = Join-Path $LogDir "llama-server-out.log"
+        $llamaErr = Join-Path $LogDir "llama-server-error.log"
+        $llamaArgs = @(
+            "--model", $llamaModel,
+            "--host", $llamaHost,
+            "--port", $llamaPort,
+            "--ctx-size", $llamaCtx,
+            "--gpu-layers", $llamaGpuLayers,
+            "--alias", $llamaAlias
+        )
+
+        Write-Host "Starting llama.cpp..." -ForegroundColor Yellow
+        $proc = Start-Process -FilePath $llamaExe -ArgumentList $llamaArgs `
+            -RedirectStandardOutput $llamaOut -RedirectStandardError $llamaErr `
+            -PassThru -WindowStyle Hidden -WorkingDirectory $llamaCppDir
+        Set-Content -Path $llamaPid -Value $proc.Id
+        Start-Sleep -Seconds 2
+        Write-Host "  [OK] llama.cpp started (PID $($proc.Id))" -ForegroundColor Green
+    } else {
+        Write-Warning "llama.cpp server or model not found. Expected $llamaExe and $llamaModel."
     }
 }
 
