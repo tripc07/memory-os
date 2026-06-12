@@ -313,6 +313,11 @@ def write_entry(entry_type, content, summary, tier="hot", tags="", platform="cli
     ts = now.strftime("%Y-%m-%dT%H%MZ")
     ts_iso = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     agent = AGENT_NAME or "agent"
+    if not AGENT_NAME:
+        logger.warning(
+            "icarus: HERMES_AGENT_NAME not set — fabric entries will use agent=\"agent\". "
+            "Set HERMES_AGENT_NAME=<name> in .env for multi-agent deployments."
+        )
     suffix = secrets.token_hex(2)
     # derive a short slug from the summary for human-readable filenames
     slug = re.sub(r"[^a-z0-9]+", "-", summary.lower().strip())[:40].strip("-")
@@ -366,7 +371,10 @@ def write_entry(entry_type, content, summary, tier="hot", tags="", platform="cli
     lines.extend(["---", "", content])
 
     path = FABRIC_DIR / filename
-    path.write_text("\n".join(lines), "utf-8")
+    content_str = "\n".join(lines)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(content_str, "utf-8")
+    tmp.rename(path)
     logger.info("icarus: wrote %s", filename)
 
     # opt-in obsidian formatting
@@ -469,7 +477,7 @@ def curate_entry(entry_id, training_value):
         for f in d.glob("*.md"):
             head = f.read_text("utf-8")[:400]
             m = re.search(r"^id: (.+)$", head, re.MULTILINE)
-            if not m or m.group(1).strip() != entry_id:
+            if not m or m.group(1).strip().strip('"') != entry_id:
                 continue
 
             text = f.read_text("utf-8")
@@ -488,7 +496,7 @@ def read_pending(customer_id=None):
     if not FABRIC_DIR.exists():
         return [], [], []
 
-    agent = AGENT_NAME
+    agent = AGENT_NAME or "agent"
     open_tasks = []
     reviews = []
     open_tickets = []
@@ -1201,4 +1209,7 @@ def write_memory_file(s):
         lines.append("")
     lines.append(f"cycles: {s.get('cycle', 0)}")
 
-    mem_path.write_text("\n".join(lines), "utf-8")
+    content_str = "\n".join(lines)
+    tmp_path = mem_path.with_suffix(".tmp")
+    tmp_path.write_text(content_str, "utf-8")
+    tmp_path.rename(mem_path)

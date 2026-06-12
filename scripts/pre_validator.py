@@ -198,7 +198,7 @@ def validate_action(action_description: str, domain_tags: Optional[List[str]] = 
         infos = []
         
         for h in hits:
-            cat = classify_hit(h, action_description)
+            cat = classify_hit(h)
             if cat == "block":
                 blockers.append(h)
             elif cat == "warn":

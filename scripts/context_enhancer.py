@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Context Enhancer — HYBRID search (semantic + BM25) on knowledge_base_hybrid
+Context Enhancer — HYBRID search (semantic + BM25) on the configured collection
 for prompt enrichment.
 
 Runs as a synchronous function (fast, <1s) before each Hermes response.

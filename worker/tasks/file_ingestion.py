@@ -1,7 +1,7 @@
 """
 Tasks — File-based wiki ingestion (Phase B: continuous).
 Receives an absolute path to a .md file under WIKI_PATH,
-extracts frontmatter, generates DENSE + BM25 SPARSE embeddings, upserts into knowledge_base_hybrid.
+extracts frontmatter, generates DENSE + BM25 SPARSE embeddings, upserts into the configured collection.
 """
 import logging
 import os
@@ -46,7 +46,7 @@ def parse_frontmatter(text: str) -> tuple[dict, str]:
 
 def get_source_tag(path: Path) -> str:
     """Derives a source tag from the path relative to WIKI_PATH."""
-    rel = path.relative_to(WIKI_PATH)
+    rel = path.resolve().relative_to(Path(WIKI_PATH).resolve())
     parts = rel.parts
     if len(parts) > 1:
         return f"wiki-{parts[0]}"
@@ -156,12 +156,12 @@ async def ingest_file(
     file_path: str,
 ) -> dict:
     """
-    Ingests a .md file from the vault into knowledge_base_hybrid (dense + BM25 sparse).
+    Ingests a .md file from the vault (dense + BM25 sparse).
     Returns a dict with id and status.
     """
     wiki_root = Path(WIKI_PATH).resolve()
     path = Path(file_path).resolve()
-    if not str(path).startswith(str(wiki_root)) or path.suffix != ".md":
+    if not path.is_relative_to(wiki_root) or path.suffix != ".md":
         raise ValueError("file_path must be a .md file under WIKI_PATH")
     if not path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
