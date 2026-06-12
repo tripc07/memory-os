@@ -142,7 +142,14 @@ foreach ($d in $dirs) { New-Item -ItemType Directory -Path (Join-Path $vaultPath
 
 ## Running Services
 
-### Start all services:
+### Start all post-reboot services:
+```cmd
+start.bat
+```
+
+This starts Redis, Qdrant, Ollama embeddings, llama.cpp chat, and the ARQ worker using the native Windows service script.
+
+### Start all services directly:
 ```powershell
 .\setup\start_services.ps1
 ```

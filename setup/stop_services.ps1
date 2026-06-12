@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Stop Memory OS services (Redis, Qdrant, llama.cpp, ARQ Worker) on Windows.
+    Stop Memory OS services (Redis, Qdrant, Ollama, llama.cpp, ARQ Worker) on Windows.
 
 .DESCRIPTION
     Reads PID files from $HERMES_HOME/pids/ and stops the corresponding processes.
@@ -27,7 +27,7 @@ function ShouldStop($name) {
     return $Only -contains $name
 }
 
-$services = @("redis", "qdrant", "llamacpp", "worker")
+$services = @("redis", "qdrant", "ollama", "llamacpp", "worker")
 
 foreach ($svc in $services) {
     if (-not (ShouldStop $svc)) { continue }

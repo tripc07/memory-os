@@ -1,14 +1,14 @@
 <#
 .SYNOPSIS
-    Start Memory OS services (Redis, Qdrant, llama.cpp, ARQ Worker) as background processes on Windows.
+    Start Memory OS services (Redis, Qdrant, Ollama, llama.cpp, ARQ Worker) as background processes on Windows.
 
 .DESCRIPTION
-    Launches Redis, Qdrant, llama.cpp, and the ARQ worker as background processes.
+    Launches Redis, Qdrant, Ollama, llama.cpp, and the ARQ worker as background processes.
     PID files are written to $HERMES_HOME so stop_services.ps1 can shut them down.
 
 .EXAMPLE
     .\setup\start_services.ps1
-    .\setup\start_services.ps1 -Only redis,qdrant,llamacpp
+    .\setup\start_services.ps1 -Only redis,qdrant,ollama,llamacpp
 #>
 
 [CmdletBinding()]
@@ -81,6 +81,16 @@ function TestLlamaCppHealth() {
     }
 }
 
+function TestOllamaHealth() {
+    $ollamaPort = if ($env:OLLAMA_PORT) { $env:OLLAMA_PORT } else { "11434" }
+    try {
+        Invoke-RestMethod -Uri "http://127.0.0.1:$ollamaPort/api/tags" -TimeoutSec 2 | Out-Null
+        return $true
+    } catch {
+        return $false
+    }
+}
+
 function FindMemoryOsWorkerProcesses($workerScript) {
     $escapedWorkerScript = [regex]::Escape($workerScript)
     Get-CimInstance Win32_Process |
@@ -89,6 +99,21 @@ function FindMemoryOsWorkerProcesses($workerScript) {
             $_.CommandLine -and
             $_.CommandLine -match $escapedWorkerScript -and
             $_.CommandLine -match "--run-worker"
+        } |
+        Sort-Object ProcessId
+}
+
+function FindOllamaProcesses($ollamaExe) {
+    $escapedOllamaExe = if ($ollamaExe) { [regex]::Escape($ollamaExe) } else { "" }
+    Get-CimInstance Win32_Process |
+        Where-Object {
+            $_.Name -eq "ollama.exe" -and
+            $_.CommandLine -and
+            $_.CommandLine -match "serve" -and
+            (
+                (-not $escapedOllamaExe) -or
+                $_.CommandLine -match $escapedOllamaExe
+            )
         } |
         Sort-Object ProcessId
 }
@@ -226,6 +251,47 @@ if (ShouldStart "qdrant") {
         Write-Host "  [OK] Qdrant started (PID $($proc.Id))" -ForegroundColor Green
     } else {
         Write-Warning "qdrant.exe not found at $qdrantExe. Run setup_windows.ps1 first."
+    }
+}
+
+# -- Ollama ------------------------------------------------------------------
+if (ShouldStart "ollama") {
+    $ollamaPid = Join-Path $PidDir "ollama.pid"
+    $ollamaCandidates = @(
+        $env:OLLAMA_EXE,
+        (Get-Command ollama -ErrorAction SilentlyContinue).Source,
+        (Join-Path $env:LOCALAPPDATA "Programs\Ollama\ollama.exe")
+    ) | Where-Object { $_ -and (Test-Path $_) }
+    $ollamaExe = if ($ollamaCandidates.Count -gt 0) { $ollamaCandidates[0] } else { $null }
+    $ollamaProc = GetProcessFromPidFile $ollamaPid
+
+    if (-not $ollamaProc -and $ollamaExe) {
+        $existingOllama = @(FindOllamaProcesses $ollamaExe)
+        if ($existingOllama.Count -gt 0) {
+            $ollamaProc = Get-Process -Id $existingOllama[0].ProcessId -ErrorAction SilentlyContinue
+            if ($ollamaProc) {
+                Set-Content -Path $ollamaPid -Value $ollamaProc.Id
+            }
+        }
+    }
+
+    if ($ollamaProc -and (TestOllamaHealth)) {
+        Write-Host "  [OK] Ollama already running (PID $($ollamaProc.Id))" -ForegroundColor Green
+    } elseif (TestOllamaHealth) {
+        Write-Host "  [OK] Ollama already healthy on 127.0.0.1:11434" -ForegroundColor Green
+    } elseif ($ollamaExe) {
+        $ollamaLog = Join-Path $LogDir "ollama.log"
+        $ollamaErr = Join-Path $LogDir "ollama-error.log"
+
+        Write-Host "Starting Ollama..." -ForegroundColor Yellow
+        $proc = Start-Process -FilePath $ollamaExe -ArgumentList @("serve") `
+            -RedirectStandardOutput $ollamaLog -RedirectStandardError $ollamaErr `
+            -PassThru -WindowStyle Hidden
+        Set-Content -Path $ollamaPid -Value $proc.Id
+        Start-Sleep -Seconds 2
+        Write-Host "  [OK] Ollama started (PID $($proc.Id))" -ForegroundColor Green
+    } else {
+        Write-Warning "ollama.exe not found. Install Ollama or set OLLAMA_EXE."
     }
 }
 

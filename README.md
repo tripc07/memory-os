@@ -35,6 +35,8 @@ Designed and refined by someone who ran headfirst into every limitation of stock
 **Requirements:** Hermes Agent + Qdrant + Redis + ARQ Worker + Python 3.11+ (all run natively on Windows — no Docker or WSL needed).  
 Compatible with any LLM provider Hermes supports — OpenRouter, OpenAI, Anthropic, Ollama, and more.
 
+After a reboot on Windows, run `start.bat` from the repo root to bring up the native local runtime: Redis, Qdrant, Ollama embeddings, llama.cpp chat, and the ARQ worker.
+
 ---
 
 ## Architecture: 7 memory layers
