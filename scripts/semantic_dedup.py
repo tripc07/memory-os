@@ -2,7 +2,7 @@
 """
 semantic_dedup.py
 Scanner mensal de near-duplicates no knowledge_base via Qdrant HNSW index.
-Rodo no primeiro domingo de cada mês (cron: 0 3 1 * *).
+Rodo mensalmente via Windows Task Scheduler.
 
 Regras:
 - Ignora coleções com prefixo em DEDUP_EXEMPT_PREFIXES (csv)
@@ -12,7 +12,7 @@ Regras:
   (HNSW index nativo, O(n/batch) requests em vez de O(n²) brute-force)
 
 Uso:
-  python3 semantic_dedup.py [--collection knowledge_base] [--threshold 0.92] [--dry-run]
+  python semantic_dedup.py [--collection knowledge_base] [--threshold 0.92] [--dry-run]
 """
 
 import os
@@ -38,7 +38,7 @@ SCROLL_LIMIT = 50  # paginação Qdrant (evita timeout em coleções grandes)
 SIMILARITY_THRESHOLD = 0.92
 TOP_NEIGHBORS = 10
 
-LOG_DIR = Path.home() / ".hermes" / "logs"
+LOG_DIR = Path(os.environ.get("HERMES_LOGS_DIR", str(Path.home() / ".hermes" / "logs")))
 LOG_FILE = LOG_DIR / "semantic_dedup.log"
 REPORT_FILE = LOG_DIR / "semantic_dedup_report.json"
 
@@ -175,6 +175,7 @@ def find_near_duplicates(chunks: List[Dict],
             requests_list.append(
                 models.QueryRequest(
                     query=vec,
+                    using="dense",
                     limit=1,
                     score_threshold=threshold,
                     filter=models.Filter(

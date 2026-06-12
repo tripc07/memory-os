@@ -5,7 +5,7 @@ Extracts eval prompts from high-value fabric entries, runs both models,
 scores task completion, format compliance, and style match.
 
 Usage:
-    TOGETHER_API_KEY=tok_... python3 scripts/eval-replacement.py \\
+    $env:TOGETHER_API_KEY='tok_...'; python scripts/eval-replacement.py `
         --candidate-model user/icarus-v1 \\
         --base-model Qwen/Qwen2-7B-Instruct \\
         --sample-count 10

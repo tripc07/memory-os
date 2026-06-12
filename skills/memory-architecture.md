@@ -60,7 +60,7 @@ curl -s -X PUT http://localhost:6333/collections/knowledge_base \
 | Dense embedding | Qwen3-Embedding-8B via OpenRouter | 4096 dimensions, 32K context, $0.01/1M tokens |
 | Sparse embedding | FastEmbed BM25 (local) | Runs in-process, no API call |
 | Queue | Redis (ARQ) | Async job queue for ingestion |
-| Worker | Docker (ARQ Worker) | Processes embedding + Qdrant upsert |
+| Worker | ARQ Worker (native Python) | Processes embedding + Qdrant upsert |
 
 ### Environment alignment checklist
 
@@ -131,13 +131,13 @@ decay_score = exp(-ln(2) * age_days / half_life)
 
 Run this once before enabling the decay scanner:
 
-```bash
-python3 scripts/backfill_decay_metadata.py --dry-run
+```powershell
+python scripts/backfill_decay_metadata.py --dry-run
 # Review results, then:
-python3 scripts/backfill_decay_metadata.py --commit
+python scripts/backfill_decay_metadata.py --commit
 ```
 
-Do NOT remove `--dry-run` from the crontab until backfill is complete and shows real archival behavior.
+Do NOT remove `--dry-run` from the scheduled task until backfill is complete and shows real archival behavior.
 
 ## Semantic Dedup
 

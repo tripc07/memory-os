@@ -27,8 +27,8 @@ $VAULT_PATH/wiki/
 
 | Pipeline | Trigger | What it does |
 |----------|---------|--------------|
-| **Wiki Agent** (curation) | Scheduled cron | Reads `raw/` files, extracts concepts/entities/comparisons, creates structured wiki pages |
-| **Continuous Ingest** (Qdrant) | Hourly cron | SHA-256 diff detection, embeds new/modified files, upserts to `knowledge_base` |
+| **Wiki Agent** (curation) | Scheduled task | Reads `raw/` files, extracts concepts/entities/comparisons, creates structured wiki pages |
+| **Continuous Ingest** (Qdrant) | Hourly scheduled task | SHA-256 diff detection, embeds new/modified files, upserts to `knowledge_base` |
 
 They're independent: the Wiki Agent builds the curated knowledge graph; Continuous Ingest ensures Qdrant stays in sync.
 
@@ -56,7 +56,7 @@ They're independent: the Wiki Agent builds the curated knowledge graph; Continuo
    b. Computes SHA-256 hash for each file
    c. Compares with state file
    d. New or modified → enqueues ARQ job in Redis
-3. ARQ Worker (Docker):
+3. ARQ Worker:
    a. process_wiki_file → reads file content
    b. parse_frontmatter → extracts metadata
    c. get_embedding() → Qwen3-Embedding-8B (4096d)
@@ -78,7 +78,7 @@ Every wiki page must have:
 
 ## Pitfalls
 
-- **Wiki Agent and Vault Curator are different cronjobs** — don't conflate them. Wiki Agent creates pages; Vault Curator enriches frontmatter + adds semantic links to existing files
+- **Wiki Agent and Vault Curator are different scheduled tasks** — don't conflate them. Wiki Agent creates pages; Vault Curator enriches frontmatter + adds semantic links to existing files
 - **raw/ files are source material, not curated knowledge** — they feed the pipeline but aren't themselves structured wiki pages
 - **SCHEMA.md is the constitution** — any change to page structure or taxonomy must be reflected there first
 - **log.md is the audit trail** — if a page looks wrong, check log.md to see which session created it and why

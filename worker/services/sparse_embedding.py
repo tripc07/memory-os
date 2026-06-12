@@ -27,7 +27,7 @@ def get_sparse_embedding(text: str) -> dict:
     Returns a Qdrant-compatible dict: {"indices": [...], "values": [...]}
     """
     model = _get_model()
-    sparse = list(model.embed(text))[0]
+    sparse = list(model.embed([text]))[0]
     return {
         "indices": sparse.indices.tolist(),
         "values": sparse.values.tolist(),

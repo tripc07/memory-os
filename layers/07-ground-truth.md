@@ -54,8 +54,8 @@ The hierarchy was expanded to 4 levels, with injected memory inserted as the sec
 
 | File | Change |
 |------|--------|
-| `~/.hermes/SOUL.md` | Ground Truth section expanded from 3 to 4 levels; added conflict rules |
-| `~/.hermes/rulebook.md` | Added "Injected memory" row to Source of Truth table; added mandatory verification behavior |
+| `%USERPROFILE%\.hermes\SOUL.md` | Ground Truth section expanded from 3 to 4 levels; added conflict rules |
+| `%USERPROFILE%\.hermes\rulebook.md` | Added "Injected memory" row to Source of Truth table; added mandatory verification behavior |
 
 ### Key instruction added to SOUL.md
 
@@ -83,8 +83,8 @@ After applying this fix (updating SOUL.md and rulebook.md), the agent should:
 
 A gateway restart is required after editing SOUL.md or rulebook.md for changes to take effect in new sessions:
 
-```bash
-systemctl --user restart hermes-gateway
+```powershell
+hermes gateway restart
 ```
 
 ## Related
@@ -93,3 +93,42 @@ systemctl --user restart hermes-gateway
 - [Layer 5 — Qdrant (vector source)](05-qdrant.md)
 - [Layer 3 — Fact Store (structured facts)](03-fact-store.md)
 - [Layer 2 — Sessions](02-sessions.md)
+
+## 2026-06-07: The gap between knowing and executing
+
+A production session revealed that the Ground Truth hierarchy alone is
+not sufficient. The agent made 7 avoidable mistakes in sequence, all
+sharing the same root cause: the injected context was present in the
+prompt, the rules were loaded, but the agent defaulted to "resolve fast"
+mode instead of "verify first."
+
+Two discoveries emerged:
+
+1. **Qdrant injection was silently broken.** The `hooks.py` import
+   `from scripts.context_enhancer import ...` resolved to a path where
+   the file never existed — the code lived under the Memory OS repo.
+   The `except Exception: return []` pattern swallowed the
+   `ModuleNotFoundError`, and `[qdrant]` was never injected. This had
+   been broken since 2026-05-29 without detection.
+
+2. **Behavioral inertia outpaces documentation.** The Ground Truth
+   hierarchy was correctly documented and injected into the prompt.
+   The agent read it every turn. It still defaulted to the faster
+   operational mode.
+
+### The fix
+
+**Technical:** Updated the native Windows setup flow so `context_enhancer.py`
+is reachable from the import path.
+
+**Behavioral:** Added the **Mandatory Pre-Action Protocol** to
+`rulebook.md` — a 4-step mechanical sequence (inventory → match →
+use/declare → act) that runs before every tool call. This protocol
+bridges the gap between knowing the rule and executing it under
+time pressure.
+
+**Documentation updated:**
+- `modifications/soul-rulebook.md` — new protocol section
+- `modifications/execution-agent-protocol.md` — standalone protocol
+  for automated application by the setup flow
+- `setup/setup_windows.ps1` — native setup entrypoint

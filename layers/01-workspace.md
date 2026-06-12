@@ -34,6 +34,6 @@ No additional configuration needed — these files are always injected by Hermes
 
 ## Pitfalls
 
-- **systemd does not expand `~`:** Paths in `.env` read by the gateway must use absolute paths
+- **Paths in `.env` must be absolute:** Use `C:/Users/your-user/...` format with forward slashes
 - **Never edit MEMORY.md manually:** Use `memory(action='add')` — the tool writes atomic `§`-delimited entries
 - **Icarus conflict:** If MEMORY.md ever shows `cycles:` or markdown headers, Icarus overwrote it. Delete and restore from backup, then ensure Icarus is writing to CREATIVE.md

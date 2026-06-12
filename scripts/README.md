@@ -6,9 +6,9 @@ Standalone Python scripts that maintain the Qdrant vector database and wiki pipe
 
 | Script | What it does | Run |
 |--------|-------------|-----|
-| `decay_scanner.py` | Archives low-importance, aged AI content based on half-life decay | Weekly cron |
+| `decay_scanner.py` | Archives low-importance, aged AI content based on half-life decay | Weekly scheduled task |
 | `backfill_decay_metadata.py` | Populates missing `importance_score`, `last_accessed_at`, `confidence_score` in Qdrant points | Run once before enabling decay scanner |
-| `semantic_dedup.py` | Merges near-duplicate points (cosine >0.92) | Monthly cron |
+| `semantic_dedup.py` | Merges near-duplicate points (cosine >0.92) | Monthly scheduled task |
 
 ## Context Injection
 
@@ -20,7 +20,7 @@ Standalone Python scripts that maintain the Qdrant vector database and wiki pipe
 
 | Script | What it does | Run |
 |--------|-------------|-----|
-| `wiki_continuous_ingest.py` | SHA-256 diff detection: finds new/modified wiki files, enqueues ARQ jobs in Redis | Hourly cron |
+| `wiki_continuous_ingest.py` | SHA-256 diff detection: finds new/modified wiki files, enqueues ARQ jobs in Redis | Hourly scheduled task |
 | `bulk_wiki_ingest.py` | One-shot bulk ingestion of all wiki files into Qdrant | After initial setup or collection rebuild |
 
 ## Quality Control
@@ -28,13 +28,13 @@ Standalone Python scripts that maintain the Qdrant vector database and wiki pipe
 | Script | What it does | Run |
 |--------|-------------|-----|
 | `pre_validator.py` | Pre-flight validation of wiki documents: YAML frontmatter, required fields, link targets | Before ingestion |
-| `reflection_trigger.py` | Idle detection for ARQ worker — enqueues micro-reflection when queue is empty and within hourly budget | Every 5min cron |
+| `reflection_trigger.py` | Idle detection for ARQ worker — enqueues micro-reflection when queue is empty and within hourly budget | Every 5min scheduled task |
 
 ## Monitoring
 
 | Script | What it does | Run |
 |--------|-------------|-----|
-| `dlq_manager.py` | Dead letter queue monitoring and reporting | Every 6h cron |
+| `dlq_manager.py` | Dead letter queue monitoring and reporting | Every 6h scheduled task |
 
 ## Environment variables
 
@@ -42,7 +42,7 @@ All scripts read configuration from environment variables. See `.env.example` in
 
 Key variables:
 - `OPENROUTER_API_KEY` — embeddings (required)
-- `WIKI_PATH` — wiki root directory (default: `~/vault/wiki`)
+- `WIKI_PATH` — wiki root directory (default: `%USERPROFILE%/vault/wiki` on Windows)
 - `COLLECTION_NAME` — Qdrant collection (default: `knowledge_base`)
 - `EMBEDDING_DIMS` — vector dimensions (default: 4096)
 - `REDIS_PASSWORD` — Redis auth (required for wiki ingest)

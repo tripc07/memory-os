@@ -11,8 +11,8 @@ Usage:
     python setup_db.py --dry-run                # print SQL without executing
 
 Environment variables:
-    STATE_DB_PATH      — path to state.db (default: ~/.hermes/state.db)
-    MEMORY_STORE_PATH  — path to memory_store.db (default: ~/.hermes/memory_store.db)
+    STATE_DB_PATH      — path to state.db (default: %USERPROFILE%/.hermes/state.db)
+    MEMORY_STORE_PATH  — path to memory_store.db (default: %USERPROFILE%/.hermes/memory_store.db)
 """
 
 import argparse
@@ -297,7 +297,7 @@ def main():
         print("✅ Both databases created successfully.")
         print()
         print("   Next steps:")
-        print(f"   1. Ensure Qdrant is running: docker compose up -d qdrant")
+        print(f"   1. Ensure Qdrant is running: start it via setup\\start_services.ps1 or run qdrant.exe directly")
         print(f"   2. Create the Qdrant collection:")
         print(f"      python scripts/bulk_wiki_ingest.py   (creates collection automatically)")
         print(f"      OR manually:")

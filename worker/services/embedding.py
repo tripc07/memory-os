@@ -51,8 +51,9 @@ async def get_embedding(text: str) -> list[float]:
     payload = {
         "model": EMBEDDING_MODEL,
         "input": text,
-        "dimensions": EMBEDDING_DIMS,  # OpenAI/OpenRouter-specific; ignored by Ollama/vLLM
     }
+    if "openrouter" in EMBEDDING_API_BASE.lower():
+        payload["dimensions"] = EMBEDDING_DIMS
 
     async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(

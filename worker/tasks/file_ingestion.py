@@ -1,7 +1,7 @@
 """
 Tasks — File-based wiki ingestion (Phase B: continuous).
-Receives a file path to a .md file inside the container (e.g. /wiki/concepts/new.md),
-extracts frontmatter, generates DENSE + BM25 SPARSE embeddings, upserts into knowledge_base_hybrid.
+Receives an absolute path to a .md file under WIKI_PATH,
+extracts frontmatter, generates DENSE + BM25 SPARSE embeddings, upserts into the configured collection.
 """
 import logging
 import os
@@ -19,9 +19,13 @@ from services.sparse_embedding import get_sparse_embedding
 logger = logging.getLogger("cognitive-worker.file_ingest")
 
 COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "knowledge_base")
-QDRANT_HOST = os.environ.get("QDRANT_HOST", "qdrant-maas")
+QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", "6333"))
-WIKI_PATH = os.environ.get("WIKI_PATH", "/wiki")
+WIKI_PATH = (
+    os.environ.get("WIKI_PATH")
+    or os.environ.get("WIKI_ROOT")
+    or str(Path.home() / "vault" / "wiki")
+)
 MAX_TEXT_LEN = 8000
 
 
@@ -42,7 +46,7 @@ def parse_frontmatter(text: str) -> tuple[dict, str]:
 
 def get_source_tag(path: Path) -> str:
     """Derives a source tag from the path relative to WIKI_PATH."""
-    rel = path.relative_to(WIKI_PATH)
+    rel = path.resolve().relative_to(Path(WIKI_PATH).resolve())
     parts = rel.parts
     if len(parts) > 1:
         return f"wiki-{parts[0]}"
@@ -152,12 +156,12 @@ async def ingest_file(
     file_path: str,
 ) -> dict:
     """
-    Ingests a .md file from the vault into knowledge_base_hybrid (dense + BM25 sparse).
+    Ingests a .md file from the vault (dense + BM25 sparse).
     Returns a dict with id and status.
     """
     wiki_root = Path(WIKI_PATH).resolve()
     path = Path(file_path).resolve()
-    if not str(path).startswith(str(wiki_root)) or path.suffix != ".md":
+    if not path.is_relative_to(wiki_root) or path.suffix != ".md":
         raise ValueError("file_path must be a .md file under WIKI_PATH")
     if not path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")

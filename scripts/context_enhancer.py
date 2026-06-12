@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Context Enhancer — HYBRID search (semantic + BM25) on knowledge_base_hybrid
+Context Enhancer — HYBRID search (semantic + BM25) on the configured collection
 for prompt enrichment.
 
 Runs as a synchronous function (fast, <1s) before each Hermes response.
 If Qdrant is offline or embedding fails, returns "" (fail-open).
 
 Usage:
-  python3 context_enhancer.py "your query here"
-  python3 context_enhancer.py --top-k 5 --threshold 0.50 "deploy docker"
-  python3 context_enhancer.py --hybrid-off "your query here"   # forces dense-only
+  python context_enhancer.py "your query here"
+  python context_enhancer.py --top-k 5 --threshold 0.50 "deploy qdrant"
+  python context_enhancer.py --hybrid-off "your query here"   # forces dense-only
 """
 
 import os
@@ -23,10 +23,23 @@ import requests
 import argparse
 import re
 import glob
+import sysconfig
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
 import time
 from datetime import datetime, timezone
+
+from dotenv import load_dotenv
+
+# Load the same environment file used by the Memory OS scheduled tasks, then
+# fall back to the repo-local .env for direct developer runs.
+DEFAULT_HERMES_HOME = Path(os.environ.get("HERMES_HOME", str(Path.home() / ".hermes")))
+ENV_PATH = Path(os.environ.get("MAA_ENV_PATH", str(DEFAULT_HERMES_HOME / ".env")))
+if ENV_PATH.exists():
+    load_dotenv(ENV_PATH)
+REPO_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+if REPO_ENV_PATH.exists():
+    load_dotenv(REPO_ENV_PATH)
 
 # ─── Config ────────────────────────────────────────────────────────────────
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
@@ -39,8 +52,10 @@ if not OPENROUTER_KEY:
                 break
 
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
-COLLECTION = os.environ.get("QDRANT_COLLECTION", "knowledge_base")
+COLLECTION = os.environ.get("COLLECTION_NAME", os.environ.get("QDRANT_COLLECTION", "knowledge_base"))
 
+EMBEDDING_API_KEY = os.environ.get("EMBEDDING_API_KEY")
+EMBEDDING_API_BASE = os.environ.get("EMBEDDING_API_BASE", "https://openrouter.ai/api/v1").rstrip("/")
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "qwen/qwen3-embedding-8b")
 TOP_K_DEFAULT = 3
 SCORE_THRESHOLD_DEFAULT = 0.55
@@ -54,20 +69,20 @@ FASTEMBED_VENV = os.environ.get("FASTEMBED_VENV", "")
 _FASTEMBED_PYTHON = FASTEMBED_VENV if FASTEMBED_VENV else sys.executable
 _FASTEMBED_SITEPKGS = os.environ.get(
     "FASTEMBED_SITEPKGS",
-    os.path.join(os.path.dirname(sys.executable), "../lib/python3.12/site-packages")
+    sysconfig.get_paths().get("purelib", "")
 )
 BM25_MODEL = "Qdrant/bm25"
 
 # Lineage config
 LINEAGE_DB = os.environ.get(
     "STATE_DB_PATH",
-    os.path.expanduser("~/.hermes/state.db")
+    str(Path.home() / ".hermes" / "state.db")
 )
 
 # Telemetry config
 TELEMETRY_LOG = os.environ.get(
     "TELEMETRY_LOG_PATH",
-    os.path.expanduser("~/.hermes/logs/query-telemetry.jsonl")
+    str(Path.home() / ".hermes" / "logs" / "query-telemetry.jsonl")
 )
 TELEMETRY_MAX_BYTES = 10 * 1024 * 1024  # 10MB rotation
 
@@ -181,16 +196,19 @@ def _strip_prompt_injection(text: str) -> str:
 # ─── Core ───────────────────────────────────────────────────────────────────
 
 def embed_query(text: str) -> Optional[List[float]]:
-    """Generate dense embedding via OpenRouter qwen/qwen3-embedding-8b."""
-    if not OPENROUTER_KEY:
+    """Generate dense embedding via the configured OpenAI-compatible backend."""
+    if "openrouter" in EMBEDDING_API_BASE.lower() and not OPENROUTER_KEY:
         return None
     try:
+        headers = {"Content-Type": "application/json"}
+        if "openrouter" in EMBEDDING_API_BASE.lower():
+            headers["Authorization"] = f"Bearer {OPENROUTER_KEY}"
+        elif EMBEDDING_API_KEY:
+            headers["Authorization"] = f"Bearer {EMBEDDING_API_KEY}"
+
         resp = requests.post(
-            "https://openrouter.ai/api/v1/embeddings",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_KEY}",
-                "Content-Type": "application/json"
-            },
+            f"{EMBEDDING_API_BASE}/embeddings",
+            headers=headers,
             json={
                 "model": EMBEDDING_MODEL,
                 "input": text[:MAX_TEXT_LEN]
@@ -212,6 +230,8 @@ def embed_query_sparse(text: str) -> Optional[Tuple[List[int], List[float]]]:
     Fail-open: if it fails, return None. Caller falls back to dense-only.
     """
     try:
+        env = os.environ.copy()
+        env["FASTEMBED_SITEPKGS"] = _FASTEMBED_SITEPKGS
         result = subprocess.run(
             [_FASTEMBED_PYTHON, "-c", """\
 import os, sys, json
@@ -223,8 +243,11 @@ sparse = list(model.embed([query]))[0]
 print(json.dumps({"indices": sparse.indices.tolist(), "values": sparse.values.tolist()}))
 """],
             input=text,
-            capture_output=True, text=True, timeout=15
+            capture_output=True, text=True, timeout=15, env=env
         )
+        if result.returncode != 0:
+            stderr = result.stderr.strip()[:300]
+            raise RuntimeError(stderr or f"fastembed subprocess exited {result.returncode}")
         data = json.loads(result.stdout.strip())
         return data["indices"], data["values"]
     except Exception as e:
@@ -311,7 +334,7 @@ def tokenize_query(text: str) -> List[str]:
 def lexical_search_in_vault(
     query_terms: List[str],
     top_k: int = TOP_K_DEFAULT,
-    vault_root: str = os.environ.get("WIKI_PATH", os.path.expanduser("~/vault/wiki"))
+    vault_root: str = os.environ.get("WIKI_PATH", str(Path.home() / "vault" / "wiki"))
 ) -> List[Dict]:
     """
     Lexical search in .md files under vault/wiki/.

@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import sys
 import urllib.request
 import urllib.error
 from datetime import datetime
@@ -203,6 +204,10 @@ def _search_qdrant(query, top_k=2, threshold=0.72):
     Returns empty list on any failure (fail-open).
     """
     try:
+        memory_os_root = os.environ.get("MEMORY_OS_ROOT", "").strip()
+        if memory_os_root and memory_os_root not in sys.path:
+            sys.path.insert(0, memory_os_root)
+
         # context_enhancer looks for OPENROUTER_API_KEY (singular);
         # inject our resolved key into environ for compatibility
         if _OPENROUTER_KEY and not os.environ.get("OPENROUTER_API_KEY"):

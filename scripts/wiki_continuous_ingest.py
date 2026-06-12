@@ -17,19 +17,32 @@ from arq import create_pool
 from arq.connections import RedisSettings
 import redis.asyncio as aioredis
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # ─── Config ────────────────────────────────────────────────────────────────
-ENV_PATH = Path.home() / "ai-stack" / "cognitive-agent" / ".env"
+DEFAULT_HERMES_HOME = Path(os.environ.get("HERMES_HOME", str(Path.home() / ".hermes")))
+ENV_PATH = Path(os.environ.get("MAA_ENV_PATH", str(DEFAULT_HERMES_HOME / ".env")))
 if ENV_PATH.exists():
     load_dotenv(ENV_PATH)
 
-WIKI_ROOT = Path(os.environ.get("WIKI_ROOT", str(Path.home() / "Vault" / "wiki")))
-STATE_FILE = Path.home() / ".hermes" / "wiki_ingest_state.json"
-FAILURES_FILE = Path.home() / ".hermes" / "wiki_ingest_failures.json"
+WIKI_ROOT = Path(
+    os.environ.get("WIKI_ROOT")
+    or os.environ.get("WIKI_PATH")
+    or str(Path.home() / "vault" / "wiki")
+)
+HERMES_HOME = Path(os.environ.get("HERMES_HOME", str(DEFAULT_HERMES_HOME)))
+STATE_FILE = HERMES_HOME / "wiki_ingest_state.json"
+FAILURES_FILE = Path(os.environ.get("HERMES_DLQ_PATH", str(HERMES_HOME / "wiki_ingest_failures.json")))
+REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
+REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "")
 
 redis_settings = RedisSettings(
-    host="127.0.0.1",
-    port=6379,
+    host=REDIS_HOST,
+    port=REDIS_PORT,
     password=REDIS_PASSWORD or None,
 )
 
@@ -60,7 +73,8 @@ async def redis_ready() -> bool:
     """Verifica se Redis está acessível antes de enfileirar."""
     try:
         r = aioredis.Redis(
-            host="127.0.0.1", port=6379,
+            host=REDIS_HOST,
+            port=REDIS_PORT,
             password=REDIS_PASSWORD or None,
             socket_connect_timeout=3,
             socket_timeout=3,
@@ -75,7 +89,7 @@ async def redis_ready() -> bool:
 
 async def main():
     if not await redis_ready():
-        print("❌ Redis não pronto. Docker stack pode estar subindo. Abortando.")
+        print("❌ Redis não pronto. Serviço pode estar iniciando. Abortando.")
         return
 
     state = load_state()
@@ -119,7 +133,7 @@ async def main():
         try:
             job = await redis.enqueue_job(
                 "process_wiki_file",
-                file_path=f"/wiki/{rel_path}",  # path dentro do container
+                file_path=abs_path,
             )
             state[rel_path]["ingested_at"] = datetime.now(timezone.utc).isoformat()
             enqueued += 1

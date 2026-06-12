@@ -2,7 +2,8 @@
 """
 reflection_trigger.py
 Verifica se o worker ARQ está ocioso (sem jobs pendentes/em execução)
-e dispara micro_reflection via enqueue ARQ. Roda via cron a cada 5 minutos.
+e dispara micro_reflection via enqueue ARQ. Roda via Windows Task Scheduler
+a cada 5 minutos.
 
 Regras:
 - Só dispara se não há jobs pendentes nem em execução (idle)
@@ -11,8 +12,8 @@ Regras:
 - Fail-open: se Redis/ARQ indisponível, sai silenciosamente
 - Nunca bloqueia o path crítico de query/ingestão
 
-Uso (cron):
-  */5 * * * * /home/calli/ai-stack/cognitive-agent/venv/bin/python /home/calli/ai-stack/scripts/reflection_trigger.py >> /home/calli/.hermes/logs/reflection_trigger.cron.log 2>&1
+Uso (Windows Task Scheduler or manual):
+  python scripts/reflection_trigger.py
 """
 
 import os
@@ -29,7 +30,8 @@ from arq.connections import RedisSettings
 import redis.asyncio as aioredis
 
 # ─── Config ────────────────────────────────────────────────────────────────
-ENV_PATH = Path.home() / "ai-stack" / "cognitive-agent" / ".env"
+DEFAULT_HERMES_HOME = Path(os.environ.get("HERMES_HOME", str(Path.home() / ".hermes")))
+ENV_PATH = Path(os.environ.get("MAA_ENV_PATH", str(DEFAULT_HERMES_HOME / ".env")))
 if ENV_PATH.exists():
     load_dotenv(ENV_PATH)
 
@@ -44,7 +46,7 @@ redis_settings = RedisSettings(
     password=REDIS_PASSWORD or None,
 )
 
-LOG_FILE = Path.home() / ".hermes" / "logs" / "reflection_trigger.log"
+LOG_FILE = Path(os.environ.get("REFLECTION_LOG_PATH", str(Path.home() / ".hermes" / "logs" / "reflection_trigger.log")))
 
 
 def log_message(msg: str):
@@ -105,7 +107,7 @@ async def check_budget() -> tuple[bool, int, int]:
     """Retorna (permitido, used, max) baseado no contador da hora no SQLite."""
     try:
         import sqlite3
-        db_path = Path.home() / ".hermes" / "state.db"
+        db_path = Path(os.environ.get("STATE_DB_PATH", str(Path.home() / ".hermes" / "state.db")))
         hour_window = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H")
         conn = sqlite3.connect(str(db_path))
         c = conn.cursor()
@@ -123,7 +125,7 @@ def increment_budget():
     """Incrementa o contador de reflections no SQLite."""
     try:
         import sqlite3
-        db_path = Path.home() / ".hermes" / "state.db"
+        db_path = Path(os.environ.get("STATE_DB_PATH", str(Path.home() / ".hermes" / "state.db")))
         hour_window = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H")
         conn = sqlite3.connect(str(db_path))
         c = conn.cursor()

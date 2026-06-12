@@ -32,8 +32,14 @@ Not just another plugin. A complete **memory operating system** — 7 layers wor
 
 Designed and refined by someone who ran headfirst into every limitation of stock Hermes and every existing memory solution.
 
-**Requirements:** Hermes Agent + Docker (Qdrant + Redis + ARQ Worker) + Python 3.11+.  
+**Requirements:** Hermes Agent + Qdrant + Redis + ARQ Worker + Python 3.11+ (all run natively on Windows — no Docker or WSL needed).  
 Compatible with any LLM provider Hermes supports — OpenRouter, OpenAI, Anthropic, Ollama, and more.
+
+After a reboot on Windows, run `start.bat` from the repo root to bring up the native local runtime: Redis, Qdrant, Ollama embeddings, llama.cpp chat, and the ARQ worker.
+
+To launch Hermes with Memory OS available, run `start-hermes.bat`. It syncs the Icarus Hermes plugin, starts the local Memory OS runtime, then launches `hermes`.
+
+`llama.cpp` is part of the Memory OS local runtime here. Hermes' primary chat model remains whatever you configure in Hermes itself; Memory OS connects through the Icarus plugin hooks and tools.
 
 ---
 
@@ -160,6 +166,6 @@ If you're like me — tired of amnesiac agents — Memory OS was built for you.
 **Want to see the agent remember for real?**  
 Clone it, run it, feel the difference.
 
-→ [Setup guide](setup/install.md) · [Layer deep-dives](layers/) · [Infrastructure docs](infrastructure/architecture.md) · [Operational skills](skills/) · [License](LICENSE)
+→ [Setup guide](setup/install_windows.md) · [Layer deep-dives](layers/) · [Infrastructure docs](infrastructure/architecture.md) · [Operational skills](skills/) · [License](LICENSE)
 
 MIT License · Built with obsession by someone who runs Hermes every single day.

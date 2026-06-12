@@ -28,4 +28,4 @@ type: meta
 ## Structure Notes
 
 - Each entry links to the wiki page path and a brief description of the change.
-- The wiki-agent cronjob updates this log automatically during curation.
+- The wiki-agent scheduled task updates this log automatically during curation.

@@ -124,4 +124,4 @@ contradictions: []     # pages this one conflicts with
 - **Tags must come from taxonomy** — freeform tags decay into noise. Add new tags to SCHEMA.md first
 - **Handle contradictions explicitly** — note both claims with dates and sources, mark in frontmatter
 - **Rotate the log** — when log.md exceeds 500 entries, rename it `log-YYYY.md` and start fresh
-- **Wiki Agent and Vault Curator are different cronjobs** — Wiki Agent creates pages; Vault Curator enriches frontmatter + adds semantic links to existing files
+- **Wiki Agent and Vault Curator are different scheduled tasks** — Wiki Agent creates pages; Vault Curator enriches frontmatter + adds semantic links to existing files

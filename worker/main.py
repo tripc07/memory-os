@@ -32,7 +32,7 @@ from tasks.reflection import reflect_on_memories, micro_reflection
 from tasks.file_ingestion import ingest_file
 
 # ─── Redis configuration ────────────────────────────────────────────────────
-REDIS_HOST = os.environ.get("REDIS_HOST", "redis-maas")
+REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "")
 
@@ -110,4 +110,4 @@ if __name__ == "__main__":
         print("Usage: python main.py --run-worker")
         print("")
         print("To enqueue jobs via Redis, use the enqueue functions")
-        print("or the Hermes cron scripts in the scripts/ directory.")
+        print("or the scheduled-task scripts in the scripts/ directory.")

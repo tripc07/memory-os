@@ -4,9 +4,9 @@ Pré-validador Semântico — Linter de decisão baseado no knowledge_base.
 Consulta o vault antes de ações de I/O ou chamadas de API.
 
 Uso:
-  python3 pre_validator.py "fazer POST no upsert do Qdrant"               # deve findar pitfall
-  python3 pre_validator.py --json "usar Claude da Anthropic"             # JSON output
-  python3 pre_validator.py --domain qdrant,api "modificar docker-compose" # restringe busca
+  python pre_validator.py "fazer POST no upsert do Qdrant"               # deve findar pitfall
+  python pre_validator.py --json "usar Claude da Anthropic"              # JSON output
+  python pre_validator.py --domain qdrant,api "modificar config Qdrant"  # restringe busca
 
 Exit codes:
   0 = pass/warn  (ação pode prosseguir)
@@ -25,8 +25,10 @@ from pathlib import Path
 
 # ─── Config ────────────────────────────────────────────────────────────────
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
+EMBEDDING_API_KEY = os.environ.get("EMBEDDING_API_KEY")
+EMBEDDING_API_BASE = os.environ.get("EMBEDDING_API_BASE", "https://openrouter.ai/api/v1").rstrip("/")
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
-COLLECTION = os.environ.get("QDRANT_COLLECTION", "knowledge_base")
+COLLECTION = os.environ.get("COLLECTION_NAME", os.environ.get("QDRANT_COLLECTION", "knowledge_base"))
 if not OPENROUTER_KEY:
     _env = Path.home() / ".env"
     if _env.exists():
@@ -34,7 +36,7 @@ if not OPENROUTER_KEY:
             if ln.startswith("OPENROUTER_API_KEY="):
                 OPENROUTER_KEY = ln.split("=", 1)[1].strip().strip('"')
                 break
-EMBEDDING_MODEL = "qwen/qwen3-embedding-8b"
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "qwen/qwen3-embedding-8b")
 TOP_K = 5
 SCORE_THRESHOLD = 0.60
 WARN_THRESHOLD = 0.75          # docs wiki pura precisam de score mais alto para aviso
@@ -61,11 +63,11 @@ def contains_restriction(text: str) -> bool:
 
 # ─── Domain Tag Inference ─────────────────────────────────────────────────
 DOMAIN_PATTERNS = {
-    "docker"     : ["docker", "compose", "container", "image", "dockerfile"],
+    "services"   : ["service", "worker", "qdrant", "redis", "task"],
     "qdrant"     : ["qdrant", "collection", "points", "upsert", "vector", "vectors", "embedding"],
     "redis"      : ["redis", "arq", "queue", "job", "worker", "broker"],
     "openrouter" : ["openrouter", "embedding", "api_key", "openai", "api_base", "model"],
-    "hermes"     : ["hermes", "config.yaml", "skill", "cron", "gateway", "cli"],
+    "hermes"     : ["hermes", "config.yaml", "skill", "task", "gateway", "cli"],
     "wiki"       : ["wiki", "raw/", "ingest", "vault", "obsidian", "knowledge_base"],
     "webui"      : ["webui", "open-webui", "frontend", "chat", "rag"],
     "infra"      : ["deploy", "server", "systemd", "service", "port", "host"],
@@ -84,15 +86,18 @@ def infer_domain_tags(description: str) -> List[str]:
 # ─── Core ───────────────────────────────────────────────────────────────────
 
 def embed_text(text: str) -> Optional[List[float]]:
-    if not OPENROUTER_KEY:
+    if "openrouter" in EMBEDDING_API_BASE.lower() and not OPENROUTER_KEY:
         return None
     try:
+        headers = {"Content-Type": "application/json"}
+        if "openrouter" in EMBEDDING_API_BASE.lower():
+            headers["Authorization"] = f"Bearer {OPENROUTER_KEY}"
+        elif EMBEDDING_API_KEY:
+            headers["Authorization"] = f"Bearer {EMBEDDING_API_KEY}"
+
         r = requests.post(
-            "https://openrouter.ai/api/v1/embeddings",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_KEY}",
-                "Content-Type": "application/json"
-            },
+            f"{EMBEDDING_API_BASE}/embeddings",
+            headers=headers,
             json={"model": EMBEDDING_MODEL, "input": text[:8000]},
             timeout=REQUEST_TIMEOUT
         )
