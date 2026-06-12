@@ -23,9 +23,9 @@ import hashlib
 import json
 import os
 import sys
-import tempfile
 import time
 import uuid
+from pathlib import Path
 
 
 # ── Config from env ──────────────────────────────────────────────────────────
@@ -36,6 +36,8 @@ QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", "6333"))
 QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY", "")
 COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "knowledge_base")
+WIKI_ROOT = Path(os.environ.get("WIKI_ROOT") or os.environ.get("WIKI_PATH") or (Path.home() / "vault" / "wiki"))
+EMBEDDING_DIMS = int(os.environ.get("EMBEDDING_DIMS", "4096"))
 TIMEOUT = 60  # seconds for ARQ job completion
 POLL_INTERVAL = 2  # seconds between polls
 
@@ -62,11 +64,12 @@ async def main() -> None:
 
     # ── 1. Create temp file for the worker to ingest ──────────────────────────
     print("1. Creating test document...")
-    # The worker reads an absolute native filesystem path.
-    tmpdir = tempfile.mkdtemp(prefix="memoryos-test-")
-    test_file = os.path.join(tmpdir, f"ingestion-test-{TEST_ID}.md")
-    test_path = os.path.abspath(test_file)
-    with open(test_file, "w") as f:
+    # The worker only accepts files under WIKI_ROOT/WIKI_PATH.
+    test_dir = WIKI_ROOT / "raw" / "test"
+    test_dir.mkdir(parents=True, exist_ok=True)
+    test_file = test_dir / f"ingestion-test-{TEST_ID}.md"
+    test_path = str(test_file.resolve())
+    with open(test_file, "w", encoding="utf-8") as f:
         f.write(f"# Test {TEST_ID}\n\n{TEST_TEXT}\n")
     ok(f"Created {test_file}")
 
@@ -75,6 +78,7 @@ async def main() -> None:
     try:
         from arq import create_pool
         from arq.connections import RedisSettings
+        from arq.jobs import Job
     except ImportError:
         fail("arq not installed — run: pip install arq")
 
@@ -87,6 +91,7 @@ async def main() -> None:
     redis = await create_pool(redis_settings)
     job = await redis.enqueue_job("process_wiki_file", test_path)
     job_id = job.job_id
+    job_ref = Job(job_id, redis)
     ok(f"Job {job_id} enqueued")
 
     # ── 3. Wait for completion ───────────────────────────────────────────────
@@ -94,14 +99,14 @@ async def main() -> None:
     deadline = time.monotonic() + TIMEOUT
     result = None
     while time.monotonic() < deadline:
-        job_info = await redis.get_job_result(job_id)
-        if job_info is not None:
-            result = job_info.result
-            if job_info.success:
-                ok(f"Job completed in {TIMEOUT - (deadline - time.monotonic()):.0f}s")
-                break
-            else:
-                fail(f"Job failed: {job_info.result}")
+        try:
+            result = await job_ref.result(timeout=0, poll_delay=0)
+            ok(f"Job completed in {TIMEOUT - (deadline - time.monotonic()):.0f}s")
+            break
+        except TimeoutError:
+            pass
+        except Exception as e:
+            fail(f"Job failed: {e}")
         await asyncio.sleep(POLL_INTERVAL)
 
     if result is None:
@@ -154,8 +159,8 @@ async def main() -> None:
         fail("Point has no 'dense' vector — named vectors may not be configured")
 
     dims = len(point.vector["dense"])
-    if dims != 4096:
-        fail(f"Expected 4096 dimensions, got {dims}")
+    if dims != EMBEDDING_DIMS:
+        fail(f"Expected {EMBEDDING_DIMS} dimensions, got {dims}")
 
     ok(f"{dims} dimensions ✓")
 
@@ -167,9 +172,8 @@ async def main() -> None:
     )
     ok(f"Deleted point {point_id}")
 
-    # Clean up local temp file
+    # Clean up local test file
     os.remove(test_file)
-    os.rmdir(tmpdir)
 
     await client.close()
     await redis.close()
