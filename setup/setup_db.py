@@ -11,8 +11,8 @@ Usage:
     python setup_db.py --dry-run                # print SQL without executing
 
 Environment variables:
-    STATE_DB_PATH      — path to state.db (default: ~/.hermes/state.db)
-    MEMORY_STORE_PATH  — path to memory_store.db (default: ~/.hermes/memory_store.db)
+    STATE_DB_PATH      — path to state.db (default: %USERPROFILE%/.hermes/state.db)
+    MEMORY_STORE_PATH  — path to memory_store.db (default: %USERPROFILE%/.hermes/memory_store.db)
 """
 
 import argparse

@@ -2,7 +2,7 @@
 """
 decay_scanner.py
 Script de arquivamento seletivo de chunks IA-generated com baixa importância.
-Roda via cron semanal (0 3 * * 0).
+Roda via Windows Task Scheduler semanalmente.
 
 Regras:
 - source_type in ["human", "procedural"] → exempt (nunca arquiva)
@@ -15,7 +15,7 @@ Regras:
 - Coleções com prefixo em DECAY_EXEMPT_PREFIXES (csv) são ignoradas
 
 Uso:
-  python3 decay_scanner.py [--collection knowledge_base_hybrid] [--dry-run]
+  python decay_scanner.py [--collection knowledge_base] [--dry-run]
 """
 
 import os

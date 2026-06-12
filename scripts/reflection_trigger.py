@@ -2,7 +2,8 @@
 """
 reflection_trigger.py
 Verifica se o worker ARQ está ocioso (sem jobs pendentes/em execução)
-e dispara micro_reflection via enqueue ARQ. Roda via cron a cada 5 minutos.
+e dispara micro_reflection via enqueue ARQ. Roda via Windows Task Scheduler
+a cada 5 minutos.
 
 Regras:
 - Só dispara se não há jobs pendentes nem em execução (idle)

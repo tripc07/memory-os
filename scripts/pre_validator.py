@@ -4,9 +4,9 @@ Pré-validador Semântico — Linter de decisão baseado no knowledge_base.
 Consulta o vault antes de ações de I/O ou chamadas de API.
 
 Uso:
-  python3 pre_validator.py "fazer POST no upsert do Qdrant"               # deve findar pitfall
-  python3 pre_validator.py --json "usar Claude da Anthropic"             # JSON output
-  python3 pre_validator.py --domain qdrant,api "modificar docker-compose" # restringe busca
+  python pre_validator.py "fazer POST no upsert do Qdrant"               # deve findar pitfall
+  python pre_validator.py --json "usar Claude da Anthropic"              # JSON output
+  python pre_validator.py --domain qdrant,api "modificar config Qdrant"  # restringe busca
 
 Exit codes:
   0 = pass/warn  (ação pode prosseguir)
@@ -63,11 +63,11 @@ def contains_restriction(text: str) -> bool:
 
 # ─── Domain Tag Inference ─────────────────────────────────────────────────
 DOMAIN_PATTERNS = {
-    "docker"     : ["docker", "compose", "container", "image", "dockerfile"],
+    "services"   : ["service", "worker", "qdrant", "redis", "task"],
     "qdrant"     : ["qdrant", "collection", "points", "upsert", "vector", "vectors", "embedding"],
     "redis"      : ["redis", "arq", "queue", "job", "worker", "broker"],
     "openrouter" : ["openrouter", "embedding", "api_key", "openai", "api_base", "model"],
-    "hermes"     : ["hermes", "config.yaml", "skill", "cron", "gateway", "cli"],
+    "hermes"     : ["hermes", "config.yaml", "skill", "task", "gateway", "cli"],
     "wiki"       : ["wiki", "raw/", "ingest", "vault", "obsidian", "knowledge_base"],
     "webui"      : ["webui", "open-webui", "frontend", "chat", "rag"],
     "infra"      : ["deploy", "server", "systemd", "service", "port", "host"],

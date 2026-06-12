@@ -3,9 +3,9 @@
 DLQ Manager — Lê, classifica, reporta e marca falhas do wiki ingest.
 
 Uso:
-  python3 dlq_manager.py --report        # reporta falhas não reportadas
-  python3 dlq_manager.py --status        # status resumido da DLQ
-  python3 dlq_manager.py --json            # saída JSON completa
+  python dlq_manager.py --report        # reporta falhas não reportadas
+  python dlq_manager.py --status        # status resumido da DLQ
+  python dlq_manager.py --json          # saída JSON completa
 """
 
 import os
@@ -18,9 +18,10 @@ from dataclasses import dataclass, asdict, field
 from collections import Counter
 
 # ─── Config ────────────────────────────────────────────────────────────────
-DLQ_PATH = os.environ.get("HERMES_DLQ_PATH", os.path.expanduser("~/.hermes/wiki_ingest_failures.json"))
-REPORT_LOG = os.environ.get("HERMES_DLQ_REPORT_LOG", os.path.expanduser("~/.hermes/cron/output/dlq_reports.jsonl"))
-REPORT_DIR = os.environ.get("HERMES_DLQ_REPORT_DIR", os.path.expanduser("~/.hermes/cron/output/quality_report"))
+DEFAULT_HERMES_HOME = os.environ.get("HERMES_HOME", os.path.join(os.path.expanduser("~"), ".hermes"))
+DLQ_PATH = os.environ.get("HERMES_DLQ_PATH", os.path.join(DEFAULT_HERMES_HOME, "wiki_ingest_failures.json"))
+REPORT_LOG = os.environ.get("HERMES_DLQ_REPORT_LOG", os.path.join(DEFAULT_HERMES_HOME, "cron", "output", "dlq_reports.jsonl"))
+REPORT_DIR = os.environ.get("HERMES_DLQ_REPORT_DIR", os.path.join(DEFAULT_HERMES_HOME, "cron", "output", "quality_report"))
 MAX_REPORT_HISTORY = 100  # entradas no JSONL
 
 # ─── Data Model ─────────────────────────────────────────────────────────────
@@ -248,7 +249,7 @@ def main():
     mark_reported(entries)
     save_dlq(entries)
     
-    # Exit code 1 para cron trigger
+    # Exit code 1 para Task Scheduler trigger
     sys.exit(1)
 
 if __name__ == "__main__":

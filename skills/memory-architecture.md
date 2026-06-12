@@ -131,13 +131,13 @@ decay_score = exp(-ln(2) * age_days / half_life)
 
 Run this once before enabling the decay scanner:
 
-```bash
-python3 scripts/backfill_decay_metadata.py --dry-run
+```powershell
+python scripts/backfill_decay_metadata.py --dry-run
 # Review results, then:
-python3 scripts/backfill_decay_metadata.py --commit
+python scripts/backfill_decay_metadata.py --commit
 ```
 
-Do NOT remove `--dry-run` from the crontab until backfill is complete and shows real archival behavior.
+Do NOT remove `--dry-run` from the scheduled task until backfill is complete and shows real archival behavior.
 
 ## Semantic Dedup
 

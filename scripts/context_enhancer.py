@@ -7,9 +7,9 @@ Runs as a synchronous function (fast, <1s) before each Hermes response.
 If Qdrant is offline or embedding fails, returns "" (fail-open).
 
 Usage:
-  python3 context_enhancer.py "your query here"
-  python3 context_enhancer.py --top-k 5 --threshold 0.50 "deploy docker"
-  python3 context_enhancer.py --hybrid-off "your query here"   # forces dense-only
+  python context_enhancer.py "your query here"
+  python context_enhancer.py --top-k 5 --threshold 0.50 "deploy qdrant"
+  python context_enhancer.py --hybrid-off "your query here"   # forces dense-only
 """
 
 import os
@@ -76,13 +76,13 @@ BM25_MODEL = "Qdrant/bm25"
 # Lineage config
 LINEAGE_DB = os.environ.get(
     "STATE_DB_PATH",
-    os.path.expanduser("~/.hermes/state.db")
+    str(Path.home() / ".hermes" / "state.db")
 )
 
 # Telemetry config
 TELEMETRY_LOG = os.environ.get(
     "TELEMETRY_LOG_PATH",
-    os.path.expanduser("~/.hermes/logs/query-telemetry.jsonl")
+    str(Path.home() / ".hermes" / "logs" / "query-telemetry.jsonl")
 )
 TELEMETRY_MAX_BYTES = 10 * 1024 * 1024  # 10MB rotation
 
@@ -334,7 +334,7 @@ def tokenize_query(text: str) -> List[str]:
 def lexical_search_in_vault(
     query_terms: List[str],
     top_k: int = TOP_K_DEFAULT,
-    vault_root: str = os.environ.get("WIKI_PATH", os.path.expanduser("~/vault/wiki"))
+    vault_root: str = os.environ.get("WIKI_PATH", str(Path.home() / "vault" / "wiki"))
 ) -> List[Dict]:
     """
     Lexical search in .md files under vault/wiki/.

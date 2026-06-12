@@ -6,7 +6,7 @@ Reads ~/fabric/ and generates training pairs in three formats:
   hf-dataset.jsonl -- Hugging Face dataset format
   raw-pairs.json   -- Raw input/output pairs
 
-Usage: python3 export-training.py --output ./training-data/
+Usage: python export-training.py --output ./training-data/
 """
 
 import argparse

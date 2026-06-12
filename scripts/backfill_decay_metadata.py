@@ -10,9 +10,9 @@ Modes:
     --pilot N    Process only N points (for validation)
 
 Usage:
-    python3 backfill_decay_metadata.py --dry-run --pilot 50
-    python3 backfill_decay_metadata.py --dry-run
-    python3 backfill_decay_metadata.py --commit
+    python backfill_decay_metadata.py --dry-run --pilot 50
+    python backfill_decay_metadata.py --dry-run
+    python backfill_decay_metadata.py --commit
 
 Heuristics:
     - created_at / last_accessed_at:

@@ -79,7 +79,7 @@ _search_qdrant(query, top_k=2, threshold=0.55):
 File in $VAULT_PATH/wiki/
     │
     ▼
-wiki-continuous-ingest (hourly cron)
+wiki-continuous-ingest (hourly scheduled task)
     │ SHA-256 diff detection
     ▼
 Redis queue (ARQ job)

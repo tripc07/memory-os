@@ -2,7 +2,7 @@
 """
 semantic_dedup.py
 Scanner mensal de near-duplicates no knowledge_base via Qdrant HNSW index.
-Rodo no primeiro domingo de cada mês (cron: 0 3 1 * *).
+Rodo mensalmente via Windows Task Scheduler.
 
 Regras:
 - Ignora coleções com prefixo em DEDUP_EXEMPT_PREFIXES (csv)
@@ -12,7 +12,7 @@ Regras:
   (HNSW index nativo, O(n/batch) requests em vez de O(n²) brute-force)
 
 Uso:
-  python3 semantic_dedup.py [--collection knowledge_base] [--threshold 0.92] [--dry-run]
+  python semantic_dedup.py [--collection knowledge_base] [--threshold 0.92] [--dry-run]
 """
 
 import os

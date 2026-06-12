@@ -7,6 +7,7 @@ import re
 import secrets
 import shutil
 import subprocess
+import sys
 import tempfile
 import urllib.request
 import urllib.error
@@ -633,7 +634,7 @@ def export_training(mode="normal"):
         return {"error": "export-training.py not found"}
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        cmd = ["python3", str(export_script), "--output", tmpdir]
+        cmd = [sys.executable, str(export_script), "--output", tmpdir]
         if mode != "normal":
             cmd.extend(["--mode", mode])
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
@@ -860,7 +861,7 @@ def run_eval(candidate_model, base_model=None, sample_count=10):
     base = base_model or os.environ.get("LLM_MODEL", "Qwen/Qwen2-7B-Instruct")
 
     cmd = [
-        "python3", str(eval_script),
+        sys.executable, str(eval_script),
         "--candidate-model", candidate_model,
         "--base-model", base,
         "--sample-count", str(sample_count),

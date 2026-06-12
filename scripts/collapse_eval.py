@@ -7,7 +7,7 @@ inject (every per-source quota) versus what the Elyan Edition COLLAPSE injects
 token estimate of the savings and a physical-entropy attestation over the
 selected set.
 
-Run: python3 scripts/collapse_eval.py
+Run: python scripts/collapse_eval.py
 No deps beyond icarus.collapse. Deterministic except the live attestation nonce.
 """
 import os

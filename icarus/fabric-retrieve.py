@@ -5,8 +5,8 @@ Given a query, returns the top N most relevant entries ranked by:
 keyword match, project match, agent match, recency, tier, type match, ref chain.
 
 Usage:
-    python3 fabric-retrieve.py "billing issue" --max-results 5 --max-tokens 2000
-    python3 fabric-retrieve.py "auth module" --agent icarus --project myapp
+    python fabric-retrieve.py "billing issue" --max-results 5 --max-tokens 2000
+    python fabric-retrieve.py "auth module" --agent icarus --project myapp
 """
 
 import hashlib

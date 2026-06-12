@@ -1,7 +1,7 @@
 # Modifications to Hermes Core
 
 Memory OS requires additions to `SOUL.md` — the Hermes agent's identity file
-at `~/.hermes/SOUL.md`. These additions ensure injected memory is treated as
+at `%USERPROFILE%\.hermes\SOUL.md`. These additions ensure injected memory is treated as
 prior knowledge rather than being ignored or re-discovered every session.
 
 ## Before you begin
@@ -142,7 +142,7 @@ interfering with the Memory OS memory stack.
 ## rulebook.md — Mandatory Pre-Action Protocol
 
 Add this section after the "Knowledge Cutoff Awareness" section in
-`~/.hermes/rulebook.md`. This is the mechanical enforcement of the
+`%USERPROFILE%\.hermes\rulebook.md`. This is the mechanical enforcement of the
 Ground Truth hierarchy — it forces the agent to pause and check injected
 context before making any tool call.
 

@@ -24,7 +24,7 @@ CHECKS = {
         ],
         "fix_hint": (
             "Add the Ground Truth hierarchy from "
-            "modifications/soul-rulebook.md to ~/.hermes/SOUL.md"
+            "modifications/soul-rulebook.md to %USERPROFILE%\\.hermes\\SOUL.md"
         ),
     },
     "context_injection": {
@@ -37,7 +37,7 @@ CHECKS = {
         ],
         "fix_hint": (
             "Add the Context Injection Convention from "
-            "modifications/soul-rulebook.md to ~/.hermes/SOUL.md"
+            "modifications/soul-rulebook.md to %USERPROFILE%\\.hermes\\SOUL.md"
         ),
     },
     "fact_feedback": {
@@ -49,7 +49,7 @@ CHECKS = {
         ],
         "fix_hint": (
             "Add the Fact Feedback Rule from "
-            "modifications/soul-rulebook.md to ~/.hermes/SOUL.md"
+            "modifications/soul-rulebook.md to %USERPROFILE%\\.hermes\\SOUL.md"
         ),
     },
     "honcho_deprecation": {
@@ -61,7 +61,7 @@ CHECKS = {
         ],
         "fix_hint": (
             "Add the Honcho deprecation notice from "
-            "modifications/soul-rulebook.md to ~/.hermes/SOUL.md"
+            "modifications/soul-rulebook.md to %USERPROFILE%\\.hermes\\SOUL.md"
         ),
     },
 }

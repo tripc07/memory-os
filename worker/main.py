@@ -110,4 +110,4 @@ if __name__ == "__main__":
         print("Usage: python main.py --run-worker")
         print("")
         print("To enqueue jobs via Redis, use the enqueue functions")
-        print("or the Hermes cron scripts in the scripts/ directory.")
+        print("or the scheduled-task scripts in the scripts/ directory.")
