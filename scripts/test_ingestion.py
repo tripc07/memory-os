@@ -176,7 +176,7 @@ async def main() -> None:
     os.remove(test_file)
 
     await client.close()
-    await redis.close()
+    await redis.aclose()
 
     # ── 7. Summary ───────────────────────────────────────────────────────────
     print()

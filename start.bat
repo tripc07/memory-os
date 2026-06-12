@@ -13,6 +13,15 @@ if not exist "%CD%\.env" (
 
 set "MAA_ENV_PATH=%CD%\.env"
 
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CD%\setup\sync_hermes_integration.ps1" -EnablePlugin
+set "SYNC_EXIT_CODE=%ERRORLEVEL%"
+
+if not "%SYNC_EXIT_CODE%"=="0" (
+    echo.
+    echo [ERROR] Hermes integration sync failed with exit code %SYNC_EXIT_CODE%.
+    exit /b %SYNC_EXIT_CODE%
+)
+
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CD%\setup\start_services.ps1" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 

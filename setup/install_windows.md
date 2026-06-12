@@ -149,6 +149,13 @@ start.bat
 
 This starts Redis, Qdrant, Ollama embeddings, llama.cpp chat, and the ARQ worker using the native Windows service script.
 
+### Launch Hermes with Memory OS:
+```cmd
+start-hermes.bat
+```
+
+This syncs the Icarus Hermes plugin, starts the local Memory OS runtime, then launches `hermes`. `llama.cpp` is used by the Memory OS runtime; Hermes' primary chat model is still configured through Hermes (`hermes model`, `hermes config`, or your provider credentials).
+
 ### Start all services directly:
 ```powershell
 .\setup\start_services.ps1

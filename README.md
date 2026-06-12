@@ -37,6 +37,10 @@ Compatible with any LLM provider Hermes supports — OpenRouter, OpenAI, Anthrop
 
 After a reboot on Windows, run `start.bat` from the repo root to bring up the native local runtime: Redis, Qdrant, Ollama embeddings, llama.cpp chat, and the ARQ worker.
 
+To launch Hermes with Memory OS available, run `start-hermes.bat`. It syncs the Icarus Hermes plugin, starts the local Memory OS runtime, then launches `hermes`.
+
+`llama.cpp` is part of the Memory OS local runtime here. Hermes' primary chat model remains whatever you configure in Hermes itself; Memory OS connects through the Icarus plugin hooks and tools.
+
 ---
 
 ## Architecture: 7 memory layers
